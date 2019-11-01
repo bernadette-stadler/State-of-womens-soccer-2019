@@ -1,0 +1,50 @@
+---
+title: "2018-19 comparison"
+author: "Bernadette Stadler"
+date: "11/1/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+```
+
+```{r}
+women_19 <- read_csv("raw-data/WWC 2019.csv", skip = 16, col_names = c("Rank", "Team_A", "X1", "X2", "X3", "Team_B", "Stage", "Global_live_audience"), cols(
+  Rank = col_double(),
+  Team_A = col_character(),
+  X1 = col_character(),
+  X2 = col_character(),
+  X3 = col_logical(),
+  Team_B = col_character(),
+  Stage = col_character(),
+  Global_live_audience = col_double()
+)) 
+  
+ w_19 <- women_19 %>% 
+   select(Rank, Team_A, Team_B, Stage, Global_live_audience) %>% 
+   mutate(Gender = "Women")
+
+men_18 <- read_csv("raw-data/MWC 2018.csv", skip = 3, n_max = 10, col_names = c("Rank", "Team_A", "Team_B", "Stage", "Global_live_audience"), cols(
+  Rank = col_double(),
+  Match = col_character(),
+  Stage = col_character(),
+  Global_live_audience = col_double()
+))
+
+m_18 <- men_18 %>% 
+  mutate(Gender = "Men")
+
+data_combined <- w_19 %>% full_join(m_18, by = c("Rank", "Team_A", "Team_B", "Stage", "Global_live_audience", "Gender"))
+```
+
+```{r}
+data_combined %>% 
+ggplot() +
+  geom_line(aes(x = Rank, y = Global_live_audience, group = Gender, color = Gender)) +
+  scale_x_reverse() +
+  scale_y_log10()
+```
+
