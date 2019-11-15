@@ -17,8 +17,8 @@ ui <- fluidPage(
             sidebarPanel(
                 selectInput("rev_exp_net",
                             "Select one of the following:", 
-                            choices = c("revenue", "expenses","net"), 
-                            selected = "revenue")
+                            choices = c("Revenue", "Expenses","Net"), 
+                            selected = "Revenue")
             ), 
             mainPanel(
                 plotOutput("plot1")
@@ -96,36 +96,38 @@ server <- function(input, output) {
         select(fiscal_year, womens_revenue, mens_revenue) %>% 
         pivot_longer(
             cols = ends_with("revenue"), 
-            names_to = "team", 
-            values_to = "revenue") %>% 
+            names_to = "Team", 
+            values_to = "Revenue") %>% 
         mutate(fiscal_year = if_else(
             fiscal_year == "2019 (projected)", 2019, as.double(fiscal_year))
         ) %>% 
-        mutate(team = if_else(team == "womens_revenue", "women", "men"))
+        mutate(Team = if_else(Team == "womens_revenue", "women", "men"))
     
     exp <- rev_exp %>% 
         select(fiscal_year, womens_expenses, mens_expenses) %>% 
         pivot_longer(
             cols = ends_with("expenses"), 
-            names_to = "team", 
-            values_to = "expenses") %>% 
+            names_to = "Team", 
+            values_to = "Expenses") %>% 
         mutate(fiscal_year = if_else(
             fiscal_year == "2019 (projected)", 2019, as.double(fiscal_year))
         ) %>% 
-        mutate(team = if_else(team == "womens_expenses", "women", "men"))
+        mutate(Team = if_else(Team == "womens_expenses", "women", "men"))
     
-    rev_exp_formatted <- exp %>% left_join(rev, by = c("fiscal_year", "team")) %>% 
-        mutate(expenses = if_else(is.na(expenses), 0, expenses)) %>% 
-        mutate(revenue = if_else(is.na(revenue), 0, revenue)) %>% 
-        mutate(net = revenue - expenses) %>% 
-        mutate(net = log10(net)) %>% 
-        mutate(revenue = log10(revenue)) %>% 
-        mutate(expenses = log10(expenses))
+    rev_exp_formatted <- exp %>% left_join(rev, by = c("fiscal_year", "Team")) %>% 
+        mutate(Expenses = if_else(is.na(Expenses), 0, Expenses)) %>% 
+        mutate(Revenue = if_else(is.na(Revenue), 0, Revenue)) %>% 
+        mutate(Net = Revenue - Expenses) %>% 
+        pivot_longer(
+            cols = Expenses:Net, 
+            names_to = "Type", 
+            values_to = "Amount")
     
-    rev_exp_formatted %>% 
+    rev_exp_formatted %>%
+        filter(Type == input$rev_exp_net) %>%
     ggplot() +
-        geom_col(aes(x = fiscal_year, y = input$rev_exp_net)) +
-        facet_wrap(~team)
+        geom_col(aes(x = fiscal_year, y = Amount)) +
+        facet_wrap(~Team)
     })
     
 }
