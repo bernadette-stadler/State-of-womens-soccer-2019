@@ -15,9 +15,9 @@ ui <- fluidPage(
         tabPanel(
             "USWNT equal pay lawsuit", 
             sidebarPanel(
-                selectInput("rev_exp_net",
+                radioButtons("rev_exp_net",
                             "Select one of the following:", 
-                            choices = c("Revenue", "Expenses","Net"), 
+                            choices = c("Revenue", "Expenses", "Net"), 
                             selected = "Revenue")
             ), 
             mainPanel(
@@ -128,6 +128,7 @@ server <- function(input, output) {
     ggplot() +
         geom_col(aes(x = fiscal_year, y = Amount)) +
         facet_wrap(~Team)
+    
     })
     
 }
