@@ -1,10 +1,13 @@
 library(shiny)
+library(ggplot2)
+library(tidyverse)
+library(plotly)
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
     
     rev_exp <- read_excel("raw-data/Revenue and expense data.xlsx") %>% 
-        clean_names()
+        clean_names(),
     
     navbarPage(
         "Equal Work, Equal Pay? Women's Soccer in 2019",
@@ -12,8 +15,13 @@ ui <- fluidPage(
         tabPanel(
             "USWNT equal pay lawsuit", 
             sidebarPanel(
-                selectInput("value",
-                            "Revenue", "Expenses", "Net") 
+                selectInput("rev_exp_net",
+                            "Select one of the following:", 
+                            choices = c("revenue", "expenses","net"), 
+                            selected = "revenue")
+            ), 
+            mainPanel(
+                plotOutput("plot1")
             )
         ),
         tabPanel(
@@ -80,7 +88,47 @@ ui <- fluidPage(
     
 
 # Define server logic required to draw a histogram
-server <- function(input, output) {}
+server <- function(input, output) {
+    
+    output$plot1 <- renderPlot({
+    
+    rev <- rev_exp %>% 
+        select(fiscal_year, womens_revenue, mens_revenue) %>% 
+        pivot_longer(
+            cols = ends_with("revenue"), 
+            names_to = "team", 
+            values_to = "revenue") %>% 
+        mutate(fiscal_year = if_else(
+            fiscal_year == "2019 (projected)", 2019, as.double(fiscal_year))
+        ) %>% 
+        mutate(team = if_else(team == "womens_revenue", "women", "men"))
+    
+    exp <- rev_exp %>% 
+        select(fiscal_year, womens_expenses, mens_expenses) %>% 
+        pivot_longer(
+            cols = ends_with("expenses"), 
+            names_to = "team", 
+            values_to = "expenses") %>% 
+        mutate(fiscal_year = if_else(
+            fiscal_year == "2019 (projected)", 2019, as.double(fiscal_year))
+        ) %>% 
+        mutate(team = if_else(team == "womens_expenses", "women", "men"))
+    
+    rev_exp_formatted <- exp %>% left_join(rev, by = c("fiscal_year", "team")) %>% 
+        mutate(expenses = if_else(is.na(expenses), 0, expenses)) %>% 
+        mutate(revenue = if_else(is.na(revenue), 0, revenue)) %>% 
+        mutate(net = revenue - expenses) %>% 
+        mutate(net = log10(net)) %>% 
+        mutate(revenue = log10(revenue)) %>% 
+        mutate(expenses = log10(expenses))
+    
+    rev_exp_formatted %>% 
+    ggplot() +
+        geom_col(aes(x = fiscal_year, y = input$rev_exp_net)) +
+        facet_wrap(~team)
+    })
+    
+}
 
 # Run the application 
 shinyApp(ui = ui, server = server)
