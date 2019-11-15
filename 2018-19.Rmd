@@ -51,10 +51,10 @@ ggplot() +
 ```
 
 ```{r}
-rev_exp <- read_excel("raw-data/Revenue and expense data.xlsx") %>% 
+x <- read_excel("raw-data/Revenue and expense data.xlsx") %>% 
   clean_names()
 
-rev <- rev_exp %>% 
+rev <- x %>% 
   select(fiscal_year, womens_revenue, mens_revenue) %>% 
   pivot_longer(
     cols = ends_with("revenue"), 
@@ -62,14 +62,10 @@ rev <- rev_exp %>%
     values_to = "revenue") %>% 
   mutate(fiscal_year = if_else(
     fiscal_year == "2019 (projected)", 2019, as.double(fiscal_year))
-    )
+    ) %>% 
+  mutate(team = if_else(team == "womens_revenue", "women", "men"))
 
-rev %>% 
-ggplot() +
-  geom_col(aes(x = fiscal_year, y = revenue)) + 
-  facet_wrap(~team)
-
-exp <- rev_exp %>% 
+exp <- x %>% 
   select(fiscal_year, womens_expenses, mens_expenses) %>% 
   pivot_longer(
     cols = ends_with("expenses"), 
@@ -77,7 +73,21 @@ exp <- rev_exp %>%
     values_to = "expenses") %>% 
   mutate(fiscal_year = if_else(
     fiscal_year == "2019 (projected)", 2019, as.double(fiscal_year))
-    )
+    ) %>% 
+  mutate(team = if_else(team == "womens_expenses", "women", "men"))
+
+rev_exp <- exp %>% left_join(rev, by = c("fiscal_year", "team")) %>% 
+  mutate(expenses = if_else(is.na(expenses), 0, expenses)) %>% 
+  mutate(revenue = if_else(is.na(revenue), 0, revenue)) 
+
+          
+```
+
+```{r}
+rev %>% 
+ggplot() +
+  geom_col(aes(x = fiscal_year, y = revenue)) + 
+  facet_wrap(~team)
 
 exp %>% 
 ggplot() +
