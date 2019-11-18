@@ -1,40 +1,48 @@
 library(shiny)
 library(ggplot2)
-library(tidyverse)
 library(plotly)
+library(readxl)
+library(janitor)
+library(reshape2)
+library(scales)
+library(tidyverse)
+
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
   rev_exp <- read_excel("raw-data/Revenue and expense data.xlsx") %>%
     clean_names(),
+  mls_salaries <- read_excel("raw-data/MLS_Salaries.xlsx") %>% clean_names(),
 
   navbarPage(
     "Equal Work, Equal Pay? Women's Soccer in 2019",
 
     tabPanel(
       "USWNT equal pay lawsuit",
-
       tabsetPanel(
         tabPanel(
           "Comparing Revenue",
           sidebarPanel(
             radioButtons("rev_exp_net",
-              "Select one of the following:",
-              choices = c("Revenue", "Expenses", "Net"),
-              selected = "Revenue"
+              "Display",
+              choices = c("Revenue", "Expenses", "Net")
             )
+          ),
+          mainPanel(
+            plotOutput("plot1")
           )
         ),
-        mainPanel(
-          plotOutput("plot1")
-        )
-      ),
-      tabPanel(
-        "State of Women's Soccer Worldwide"
-      ),
-      tabPanel(
-        "About",
-        h5("In March 2019, the 28 members of the United States Women's National 
+        tabPanel("Tabel 2"),
+        tabPanel("Tabel 3")
+      )
+    ),
+    tabPanel(
+      "State of women's Soccer Worldwide",
+      plotOutput("plot8")
+    ),
+    tabPanel(
+      "About",
+      h5("In March 2019, the 28 members of the United States Women's National 
                Soccer Team (USWNT) filed a class-actionlawsuit against their employer,
                U.S. Soccer. The lawsuit accuses U.S. soccer of violating the Equal 
                Pay Act and Title VII of thet Civil RIghts Act of 1964 by consistently 
@@ -51,9 +59,8 @@ ui <- fluidPage(
                way that allows for useful comparisons. It will also go beyond the 
                USWNT to examine how professional female soccer players are compensated 
                throughout the world."),
-        br(),
-        h3("Background Information"),
-        h5("The United States Women's National Team (USWNT) played its first 
+      h3("Background Information"),
+      h5("The United States Women's National Team (USWNT) played its first 
                game in 1985. Since women's soccer was added to the Olympic games 
                in 1996, the USWNT has won 4 gold medals and 1 silver medal in  6 
                total appearances. Since the establishement of the Women's World 
@@ -61,37 +68,29 @@ ui <- fluidPage(
                tournament played, and has won the tournament four times. The USWNT 
                is currently ranked the number 1 women's team in the world by the 
                Fédération Internationale de Football Association (FIFA)."),
-        br(),
-        h5("The United States Men's National Team (USMNT) was founded in 1885. 
+      h5("The United States Men's National Team (USMNT) was founded in 1885. 
                Since the first World Cup, in 1930, the USMNT has appeared 10 times,
                and it's best result was third place in 1930. The USMNT has qualifed 
                for four of the last seven Olympic games, achieving a highest result
                of 4th place in 2000. However, the USMNT usually has a very different
                player composistion at the Olympics due to the age restriction for
                men's teams. The USMNT is ranked 21st in the world by FIFA."),
-        br(),
-        h5("Major League Soccer(MLS) is the U.S. men's professional soccer league. 
+      h5("Major League Soccer(MLS) is the U.S. men's professional soccer league. 
                The leage was founded in 1993 during the United States' bid to host the 
                1994 FIFA World Cup."),
-        br(),
-        h5("The National Women's Soccer League (NWSL) is the U.S. women's 
+      h5("The National Women's Soccer League (NWSL) is the U.S. women's 
                professional soccer league. It was founded in 2012, and is the third 
                attempt to establish a professional women's league in the United States.
                (It's predecessors folded in 2003 and 2012 respectively). As of 2016, 
                American female soccer players who want to try out for the national team 
                have to play in the NWSL. "),
-        br(),
-        h3("Data"),
-        h5("The data for this project is drawn from the Major League Soccer Player's
+      h3("Data"),
+      h5("The data for this project is drawn from the Major League Soccer Player's
                Association (MLSPA), which publishes player salaries annually. Additionaly,
                data was gathered from journalistic articles.")
-
-      )
     )
   )
 )
-
-
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
@@ -136,6 +135,108 @@ server <- function(input, output) {
       ggplot() +
       geom_col(aes(x = fiscal_year, y = Amount)) +
       facet_wrap(~Team)
+  })
+
+  output$plot8 <- renderPlot({
+    
+    season <- c(2013, 2014, 2015, 2016, 2017, 2018)
+    
+    # make vector of seasons
+    
+    nwsl_salaries <- tibble(season) %>%
+      mutate(min_salary = c(6000, 6600, 6842, 7200, 15000, 15750)) %>%
+      mutate(max_salary = c(30000, 31500, 37800, 39700, 41700, 44000)) %>%
+      mutate(league = "NWSL")
+    
+    # use mutate to add min_salary, max_salary, and league to the tibble
+    
+    # The rest of my data comes from the mls_salaries dataset which is quite
+    # extensive and required a decent amount of manipulation.
+    
+    min_or_max_data <- mls_salaries %>%
+      select(season, base_salary) %>%
+      
+      # select variables I am interested in.
+      
+      filter(season >= 2013) %>%
+      
+      # filter so that I am using the same seasons here as I have nwsl data for
+      
+      group_by(season) %>%
+      
+      # find the minimum and maximum player salaries
+      
+      summarize(
+        min_salary = min(base_salary),
+        max_salary = max(base_salary)
+      ) %>%
+      
+      # add in MLS league identifier
+      
+      mutate(league = "MLS") %>%
+      
+      # join the mls data with the nwsl tibble I made above
+      
+      bind_rows(nwsl_salaries)
+    
+    min_or_max_data %>%
+
+      # make a ggploot
+
+      ggplot() +
+      geom_smooth(
+        aes(x = season, y = min_salary, color = "blue")
+      ) +
+      geom_smooth(
+        aes(x = season, y = max_salary, color = "red")
+      ) +
+
+      # Plot the min and max lines. At first, I plotted the top and bottom line in
+      # the same call of geom_smooth, but this made it really hard to fill in the
+      # area between the lines. So on take three, I decided to plot them
+      # separately.
+
+      geom_ribbon(aes(x = season, ymin = min_salary, ymax = max_salary), alpha = 0.05) +
+
+      # add geom_ribbon to shade the area between the min and max lines.
+
+      scale_color_discrete(
+        name = "", labels = c("Minimum salary", "Maximum salary")
+      ) +
+
+      # add a legend
+
+      facet_wrap(~league) +
+
+      # facet wrap by league
+
+      scale_y_log10(labels = number_format(scale = 1)) +
+
+      # scale the y axis. When the y axis is not a logorithmic scale, you basically
+      # can't see any lines other than the MLS maximum salary. To mitigate some of
+      # the non-intuitiveness of the log scale, I changed the y axis so that values
+      # are reported in numbers, not as log funcitons.
+
+      labs(
+        title = "Major League Soccer and National Women's Soccer League Salaries",
+        subtitle = "By season, 2013-2018",
+        y = "Salary (in USD)",
+        x = "Season",
+        caption = "Data from MLS Player's Association, USA soccer, and The Equalizer."
+      ) +
+
+      # make it look pretty
+
+      theme_minimal() +
+
+      # add title and subtitle, relable where necessary
+
+      theme(
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        axis.text.x = element_text(angle = 35, vjust = 0.5)
+      )
   })
 }
 

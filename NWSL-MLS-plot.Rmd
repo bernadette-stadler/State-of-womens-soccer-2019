@@ -1,0 +1,136 @@
+---
+title: "NWSL-MLS-plot"
+author: "Bernadette Stadler"
+date: "11/16/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(ggplot2)
+library(readxl)
+library(janitor)
+library(reshape2)
+library(scales)
+library(plotly)
+```
+
+```{r read in data, include = FALSE}
+mls_salaries <- read_excel("data/MLS_Salaries.xlsx") %>% clean_names()
+```
+
+```{r format data, include = FALSE}
+# For this milestone, I put together a chart comparing the salaries of
+# professional soccer players in the Major League Soccer(MLS) league and the
+# National Women's Soccer League (NWSl). Some of the NWSL data I needed to use
+# wasn't available in a downloadable dataset, but because it is pretty minimal
+# (a 6 by 3 tibble) I was able to pull it together by hand..
+
+season <- c(2013, 2014, 2015, 2016, 2017, 2018)
+
+# make vector of seasons
+
+nwsl_salaries <- tibble(season) %>%
+  mutate(min_salary = c(6000, 6600, 6842, 7200, 15000, 15750)) %>%
+  mutate(max_salary = c(30000, 31500, 37800, 39700, 41700, 44000)) %>%
+  mutate(league = "NWSL")
+
+# use mutate to add min_salary, max_salary, and league to the tibble
+
+# The rest of my data comes from the mls_salaries dataset which is quite
+# extensive and required a decent amount of manipulation.
+
+min_or_max_data <- mls_salaries %>%
+  select(season, base_salary) %>%
+
+  # select variables I am interested in.
+
+  filter(season >= 2013) %>%
+
+  # filter so that I am using the same seasons here as I have nwsl data for
+
+  group_by(season) %>%
+
+  # find the minimum and maximum player salaries
+
+  summarize(
+    min_salary = min(base_salary),
+    max_salary = max(base_salary)
+  ) %>%
+
+  # add in MLS league identifier
+
+  mutate(league = "MLS") %>%
+
+  # join the mls data with the nwsl tibble I made above
+
+  bind_rows(nwsl_salaries)
+```
+
+```{r ggplot scratch, warning = FALSE, message = FALSE}
+
+plot8 <- min_or_max_data %>%
+
+  # make a ggploot
+
+  ggplot() +
+  geom_smooth(
+    aes(x = season, y = min_salary, color = "blue")
+  ) +
+  geom_smooth(
+    aes(x = season, y = max_salary, color = "red")
+  ) +
+
+  # Plot the min and max lines. At first, I plotted the top and bottom line in
+  # the same call of geom_smooth, but this made it really hard to fill in the
+  # area between the lines. So on take three, I decided to plot them
+  # separately.
+
+  geom_ribbon(aes(x = season, ymin = min_salary, ymax = max_salary), alpha = 0.05) +
+
+  # add geom_ribbon to shade the area between the min and max lines.
+
+  scale_color_discrete(
+    name = "", labels = c("Minimum salary", "Maximum salary")
+    ) +
+
+  # add a legend
+
+  facet_wrap(~league) +
+
+  # facet wrap by league
+
+  scale_y_log10(labels = number_format(scale = 1)) +
+
+  # scale the y axis. When the y axis is not a logorithmic scale, you basically
+  # can't see any lines other than the MLS maximum salary. To mitigate some of
+  # the non-intuitiveness of the log scale, I changed the y axis so that values
+  # are reported in numbers, not as log funcitons.
+
+  labs(
+    title = "Major League Soccer and National Women's Soccer League Salaries",
+    subtitle = "By season, 2013-2018",
+    y = "Salary (in USD)",
+    x = "Season",
+    caption = "Data from MLS Player's Association, USA soccer, and The Equalizer."
+  ) +
+
+  # make it look pretty
+
+  theme_minimal() +
+
+  # add title and subtitle, relable where necessary
+
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    plot.caption = element_text(hjust = 0.5),
+    axis.text.x = element_text(angle = 35, vjust = 0.5)
+  )
+
+
+
+# center titles and caption
+```
+
