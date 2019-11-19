@@ -1,0 +1,61 @@
+---
+title: "National teams worldwide"
+author: "Bernadette Stadler"
+date: "11/18/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(janitor)
+library(readr)
+
+```
+
+```{r}
+wws <- read_csv("raw-data/tabula-GSSS 2017.csv", col_types = cols(
+  league = col_character(),
+  country = col_character(),
+  Season = col_character(),
+  Sport = col_character(),
+  Teams = col_double(),
+  Players = col_double()
+))%>% clean_names()
+
+mws <- read_csv("raw-data/tabula-GSSS 2017_2.csv", col_types =cols(
+  RANK = col_character(),
+  TEAM = col_character(),
+  LEAGUE = col_character()
+)) %>% drop_na() %>% filter(!LEAGUE == "LEAGUE") %>% clean_names()
+```
+
+```{r}
+mws2 <- mws %>% filter(league == "EPL" | league == "Bundesliga" | league == "Ligue 1" | league == "La Liga" | league == "Serie A" | league == "MLS" | league == "CSL" | league == "Scot Prem" | league == "J.League") %>% 
+  mutate(Country = case_when(league == "EPL" ~ "England", 
+                             league == "Bundesliga" ~ "Germany", 
+                             league == "Serie A" ~ "Italy", 
+                             league == "Ligue 1" ~ "France", 
+                             league == "La Liga" ~ "Spain", 
+                             league == "MLS" ~ "USA", 
+                             league == "CSL" ~ "China", 
+                             league == "Scot Prem" ~ "Scotland", 
+                             league == "J. League" ~ "Japan", 
+                             TRUE ~ "NA"
+                             )) %>% 
+  select(league, avg_annual_pay_2, Country) %>% 
+  mutate(avg_annual_pay_2 = if_else(avg_annual_pay_2 == "$6,739,250($129,601)", "$6,739,250 ($129,601)", avg_annual_pay_2)) %>% 
+  separate(avg_annual_pay_2, into = c("annual_pay"), sep = " ") %>% 
+  mutate(annual_pay = parse_number(annual_pay))
+
+country_number <- mws2 %>% count(Country)
+
+mws3 <- country_number %>% right_join(mws2, by = "Country") %>% 
+  group_by(Country) %>% 
+  mutate(avg_annual_pay_country = sum(annual_pay)/n) %>% 
+  group_by(Country, avg_annual_pay_country) %>% 
+  count()
+
+
+```
+
