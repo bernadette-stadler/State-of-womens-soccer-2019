@@ -28,6 +28,13 @@ mws <- read_csv("raw-data/tabula-GSSS 2017_2.csv", col_types =cols(
   TEAM = col_character(),
   LEAGUE = col_character()
 )) %>% drop_na() %>% filter(!LEAGUE == "LEAGUE") %>% clean_names()
+
+mws_18 <- read_csv("raw-data/tabula-GSSS 2018.csv", col_types =cols(
+  COUNTRY = col_character(),
+  CONTINENT = col_character(),
+  X4 = col_character()
+)) %>% clean_names()
+
 ```
 
 ```{r}
@@ -40,7 +47,7 @@ mws2 <- mws %>% filter(league == "EPL" | league == "Bundesliga" | league == "Lig
                              league == "MLS" ~ "USA", 
                              league == "CSL" ~ "China", 
                              league == "Scot Prem" ~ "Scotland", 
-                             league == "J. League" ~ "Japan", 
+                             league == "J.League" ~ "Japan", 
                              TRUE ~ "NA"
                              )) %>% 
   select(league, avg_annual_pay_2, Country) %>% 
@@ -54,8 +61,37 @@ mws3 <- country_number %>% right_join(mws2, by = "Country") %>%
   group_by(Country) %>% 
   mutate(avg_annual_pay_country = sum(annual_pay)/n) %>% 
   group_by(Country, avg_annual_pay_country) %>% 
-  count()
+  count() %>% 
+  mutate(year = 2017)
 
+missing_countries <- mws_18 %>% select(country, avg_basic_annual_1) %>% 
+  drop_na() %>% 
+  filter(country %in% c("AUSTRALIA ASIA", "MEXICO", "SWEDEN EUROPE")) %>%
+  mutate(year = 2018) %>% 
+  mutate(Country = country) %>% 
+  mutate(avg_annual_pay_country = parse_number(avg_basic_annual_1)) %>% 
+  select(Country, avg_annual_pay_country, year)
+  
 
+mws4 <- mws3 %>% bind_rows(missing_countries) %>% 
+  mutate(country_clean = case_when(Country == "AUSTRALIA ASIA" ~ "Australia", 
+                             Country == "SWEDEN EUROPE" ~ "Sweden", 
+                             Country == "MEXICO" ~ "Mexico", 
+                             TRUE ~ Country)) %>% 
+  mutate(Gender = "M")
+
+wws2 <- wws %>% filter(sport == "Football") %>% select(u_s, country) %>% 
+  mutate(avg_salary = parse_number(u_s)) %>%
+  mutate(Gender = "W") %>% 
+  mutate(year = 2017)
+
+graph_data <- wws2 %>% left_join(mws4, by = c("avg_salary" = "avg_annual_pay_country", "country" = "country_clean", "Gender" = "Gender", "year" = "year")) %>% 
+  select(avg_salary, country, year, Gender)
+```
+
+```{r}
+ggplot(graph_data) +
+  geom_col(aes(x = country, y = avg_salary, group = Gender))
+ 
 ```
 
