@@ -17,7 +17,7 @@ library(plotly)
 ```
 
 ```{r read in data, include = FALSE}
-mls_salaries <- read_excel("data/MLS_Salaries.xlsx") %>% clean_names()
+mls_salaries <- read_excel("raw-data/MLS_Salaries.xlsx") %>% clean_names()
 ```
 
 ```{r format data, include = FALSE}
@@ -70,16 +70,16 @@ min_or_max_data <- mls_salaries %>%
 
 ```{r ggplot scratch, warning = FALSE, message = FALSE}
 
-plot8 <- min_or_max_data %>%
+plot5 <- min_or_max_data %>%
 
   # make a ggploot
 
   ggplot() +
   geom_smooth(
-    aes(x = season, y = min_salary, color = "blue")
+    aes(x = season, y = min_salary)
   ) +
   geom_smooth(
-    aes(x = season, y = max_salary, color = "red")
+    aes(x = season, y = max_salary)
   ) +
 
   # Plot the min and max lines. At first, I plotted the top and bottom line in
@@ -129,7 +129,9 @@ plot8 <- min_or_max_data %>%
     axis.text.x = element_text(angle = 35, vjust = 0.5)
   )
 
-
+png("graphics/plot5.png")
+plot5
+dev.off()
 
 # center titles and caption
 ```
