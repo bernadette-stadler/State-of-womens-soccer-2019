@@ -13,6 +13,26 @@ ui <- fluidPage(
   rev_exp <- read_excel("raw-data/Revenue and expense data.xlsx") %>%
     clean_names(),
   mls_salaries <- read_excel("raw-data/MLS_Salaries.xlsx") %>% clean_names(),
+  wws <- read_csv("raw-data/tabula-GSSS 2017.csv", col_types = cols(
+    league = col_character(),
+    country = col_character(),
+    Season = col_character(),
+    Sport = col_character(),
+    Teams = col_double(),
+    Players = col_double()
+  ))%>% clean_names(), 
+  
+  mws <- read_csv("raw-data/tabula-GSSS 2017_2.csv", col_types =cols(
+    RANK = col_character(),
+    TEAM = col_character(),
+    LEAGUE = col_character()
+  )) %>% drop_na() %>% filter(!LEAGUE == "LEAGUE") %>% clean_names(), 
+  
+  mws_18 <- read_csv("raw-data/tabula-GSSS 2018.csv", col_types =cols(
+    COUNTRY = col_character(),
+    CONTINENT = col_character(),
+    X4 = col_character()
+  )) %>% clean_names(), 
 
   navbarPage(
     "Equal Work, Equal Pay? Women's Soccer in 2019",
@@ -38,7 +58,26 @@ ui <- fluidPage(
     ),
     tabPanel(
       "State of women's Soccer Worldwide",
+      h5("The question of equal (or unequal) investment in women's and 
+                   men's soccer goes beyond the USWNT lawsuit. This section explores 
+                   investment in men's and women's soccer at the professional level
+                   throughout the world."), 
+      h3("USA"), 
+      column(3,
+      "The American professional soccer leagues are Major League Soccer (MLS) 
+                   and the National Women's Soccer League (NWSL). Many USMNT hopefuls 
+                   play in the MLS, while it USWNT players are practically required to play in the NWSL."),
+      
+      column(9,
       plotOutput("plot8")
+      ), 
+      br(),
+      h3("Europe"),
+      column(3, 
+             "text"),
+      column(9, 
+      plotOutput("plot9")
+      )
     ),
     tabPanel(
       "About",
@@ -105,7 +144,7 @@ server <- function(input, output) {
       mutate(fiscal_year = if_else(
         fiscal_year == "2019 (projected)", 2019, as.double(fiscal_year)
       )) %>%
-      mutate(Team = if_else(Team == "womens_revenue", "women", "men"))
+      mutate(Team = if_else(Team == "womens_revenue", "USWNT", "USMNT"))
 
     exp <- rev_exp %>%
       select(fiscal_year, womens_expenses, mens_expenses) %>%
@@ -117,7 +156,7 @@ server <- function(input, output) {
       mutate(fiscal_year = if_else(
         fiscal_year == "2019 (projected)", 2019, as.double(fiscal_year)
       )) %>%
-      mutate(Team = if_else(Team == "womens_expenses", "women", "men"))
+      mutate(Team = if_else(Team == "womens_expenses", "USWNT", "USMNT"))
 
     rev_exp_formatted <- exp %>%
       left_join(rev, by = c("fiscal_year", "Team")) %>%
@@ -133,8 +172,17 @@ server <- function(input, output) {
     rev_exp_formatted %>%
       filter(Type == input$rev_exp_net) %>%
       ggplot() +
-      geom_col(aes(x = fiscal_year, y = Amount)) +
-      facet_wrap(~Team)
+      geom_col(aes(x = fiscal_year, y = Amount, fill = Team)) +
+      scale_fill_manual(values = c("cadetblue", "lightcoral"))+
+      facet_wrap(~Team) + 
+      labs(x = "Fiscal Year",
+           y = "Amount in U.S. dollars", 
+           title = "Annual Team Expenses and Revenue", 
+           caption = "Data from U.S. soccer annual reports")+
+      theme_minimal()+
+      theme(
+        plot.title = element_text(hjust =0.5)
+      )
   })
 
   output$plot8 <- renderPlot({
@@ -185,10 +233,10 @@ server <- function(input, output) {
 
       ggplot() +
       geom_smooth(
-        aes(x = season, y = min_salary, color = "blue")
+        aes(x = season, y = min_salary, color = "Minimum salary")
       ) +
       geom_smooth(
-        aes(x = season, y = max_salary, color = "red")
+        aes(x = season, y = max_salary, color = "Maximum salary")
       ) +
 
       # Plot the min and max lines. At first, I plotted the top and bottom line in
@@ -199,12 +247,10 @@ server <- function(input, output) {
       geom_ribbon(aes(x = season, ymin = min_salary, ymax = max_salary), alpha = 0.05) +
 
       # add geom_ribbon to shade the area between the min and max lines.
+      
+      scale_color_manual(values = c("midnightblue", "dodgerblue3")) +
 
-      scale_color_discrete(
-        name = "", labels = c("Minimum salary", "Maximum salary")
-      ) +
-
-      # add a legend
+      # manually change colors
 
       facet_wrap(~league) +
 
@@ -237,6 +283,71 @@ server <- function(input, output) {
         plot.caption = element_text(hjust = 0.5),
         axis.text.x = element_text(angle = 35, vjust = 0.5)
       )
+  })
+  
+  output$plot9 <- renderPlot({
+    
+    mws2 <- mws %>% filter(league == "EPL" | league == "Bundesliga" | league == "Ligue 1" | league == "La Liga" | league == "Serie A" | league == "MLS" | league == "CSL" | league == "Scot Prem" | league == "J.League") %>% 
+      mutate(Country = case_when(league == "EPL" ~ "England", 
+                                 league == "Bundesliga" ~ "Germany", 
+                                 league == "Serie A" ~ "Italy", 
+                                 league == "Ligue 1" ~ "France", 
+                                 league == "La Liga" ~ "Spain", 
+                                 league == "MLS" ~ "USA", 
+                                 league == "CSL" ~ "China", 
+                                 league == "Scot Prem" ~ "Scotland", 
+                                 league == "J.League" ~ "Japan", 
+                                 TRUE ~ "NA"
+      )) %>% 
+      select(league, avg_annual_pay_2, Country) %>% 
+      mutate(avg_annual_pay_2 = if_else(avg_annual_pay_2 == "$6,739,250($129,601)", "$6,739,250 ($129,601)", avg_annual_pay_2)) %>% 
+      separate(avg_annual_pay_2, into = c("annual_pay"), sep = " ") %>% 
+      mutate(annual_pay = parse_number(annual_pay))
+    
+    country_number <- mws2 %>% count(Country)
+    
+    mws3 <- country_number %>% right_join(mws2, by = "Country") %>% 
+      group_by(Country) %>% 
+      mutate(avg_annual_pay_country = sum(annual_pay)/n) %>% 
+      group_by(Country, avg_annual_pay_country) %>% 
+      count() %>% 
+      mutate(year = 2017)
+    
+    missing_countries <- mws_18 %>% select(country, avg_basic_annual_1) %>% 
+      drop_na() %>% 
+      filter(country %in% c("AUSTRALIA ASIA", "MEXICO", "SWEDEN EUROPE")) %>%
+      mutate(year = 2018) %>% 
+      mutate(Country = country) %>% 
+      mutate(avg_annual_pay_country = parse_number(avg_basic_annual_1)) %>% 
+      select(Country, avg_annual_pay_country, year)
+    
+    
+    mws4 <- mws3 %>% bind_rows(missing_countries) %>% 
+      mutate(country_clean = case_when(Country == "AUSTRALIA ASIA" ~ "Australia", 
+                                       Country == "SWEDEN EUROPE" ~ "Sweden", 
+                                       Country == "MEXICO" ~ "Mexico", 
+                                       TRUE ~ Country)) %>% 
+      mutate(Gender = "M")
+    
+    wws2 <- wws %>% filter(sport == "Football") %>% select(u_s, country) %>% 
+      mutate(avg_salary = parse_number(u_s)) %>%
+      mutate(Gender = "W") %>% 
+      mutate(year = 2017)
+    
+    graph_data <- wws2 %>% full_join(mws4, by = c("avg_salary" = "avg_annual_pay_country", "country" = "country_clean", "Gender" = "Gender", "year" = "year")) %>% 
+      select(avg_salary, country, year, Gender) %>% 
+      filter(!country %in% c("Scotland", "Spain", "Italy", "Japan"))
+    
+    ggplot(graph_data, aes(x = country, y = avg_salary, fill = Gender)) +
+      geom_col(position = "dodge") +
+      scale_fill_manual(values = c("cadetblue", "lightcoral")) + 
+      labs(x = "Country", 
+           y = "Average Annual Salary", 
+           title = "Average Annual Salary in Selected Professional Soccer Leagues, 2017", 
+           caption = "Data from Global Sports Salary Survey 2017 and 2018.") +
+      theme_minimal() +
+      theme(plot.title = element_text(hjust =0.5))
+    
   })
 }
 

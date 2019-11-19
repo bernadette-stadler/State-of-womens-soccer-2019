@@ -85,13 +85,22 @@ wws2 <- wws %>% filter(sport == "Football") %>% select(u_s, country) %>%
   mutate(Gender = "W") %>% 
   mutate(year = 2017)
 
-graph_data <- wws2 %>% left_join(mws4, by = c("avg_salary" = "avg_annual_pay_country", "country" = "country_clean", "Gender" = "Gender", "year" = "year")) %>% 
-  select(avg_salary, country, year, Gender)
+graph_data <- wws2 %>% full_join(mws4, by = c("avg_salary" = "avg_annual_pay_country", "country" = "country_clean", "Gender" = "Gender", "year" = "year")) %>% 
+  select(avg_salary, country, year, Gender) %>% 
+  filter(!country %in% c("Scotland", "Spain", "Italy", "Japan"))
 ```
 
 ```{r}
-ggplot(graph_data) +
-  geom_col(aes(x = country, y = avg_salary, group = Gender))
+ggplot(graph_data, aes(x = country, y = avg_salary, fill = Gender)) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = c("cadetblue", "lightcoral")) + 
+  labs(x = "Country", 
+       y = "Average Annual Salary", 
+       title = "Average Annual Salary in Selected Professional Soccer Leagues, 2017", 
+       caption = "Data from Global Sports Salary Survey 2017 and 2018.") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust =0.5))
+  
  
 ```
 
