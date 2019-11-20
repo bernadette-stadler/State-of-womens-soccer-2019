@@ -5,6 +5,7 @@ library(readxl)
 library(janitor)
 library(reshape2)
 library(scales)
+library(gt)
 library(tidyverse)
 
 
@@ -54,12 +55,8 @@ ui <- fluidPage(
             plotOutput("plot1")
           )
         ),
-        tabPanel("World Cup Bonuses", 
-                 sidebarPanel(
-                   selectInput("stage", "Stage", 
-                               choices = c(1,2,3,4,5,6,7), 
-                               selected = "Start")),
-                 plotOutput("plot2"),
+        tabPanel("World Cup Bonuses",
+                 img(src = "world_cup_bonuses.png"), 
         tabPanel("Tabel 3")
       )
     )),
@@ -183,7 +180,7 @@ server <- function(input, output) {
       filter(Type == input$rev_exp_net) %>%
       ggplot() +
       geom_col(aes(x = fiscal_year, y = Amount, fill = Team)) +
-      scale_fill_manual(values = c("cadetblue", "lightcoral")) +
+      scale_fill_manual(values = c("purple4", "red")) +
       facet_wrap(~Team) +
       labs(
         x = "Fiscal Year",
@@ -232,83 +229,6 @@ server <- function(input, output) {
       theme_minimal() +
       theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
     
-  })
-
-  output$plot9 <- renderPlot({
-    mws2 <- mws %>%
-      filter(league == "EPL" | league == "Bundesliga" | league == "Ligue 1" | league == "La Liga" | league == "Serie A" | league == "MLS" | league == "CSL" | league == "Scot Prem" | league == "J.League") %>%
-      mutate(Country = case_when(
-        league == "EPL" ~ "England",
-        league == "Bundesliga" ~ "Germany",
-        league == "Serie A" ~ "Italy",
-        league == "Ligue 1" ~ "France",
-        league == "La Liga" ~ "Spain",
-        league == "MLS" ~ "USA",
-        league == "CSL" ~ "China",
-        league == "Scot Prem" ~ "Scotland",
-        league == "J.League" ~ "Japan",
-        TRUE ~ "NA"
-      )) %>%
-      select(league, avg_annual_pay_2, Country) %>%
-      mutate(avg_annual_pay_2 = if_else(avg_annual_pay_2 == "$6,739,250($129,601)", "$6,739,250 ($129,601)", avg_annual_pay_2)) %>%
-      separate(avg_annual_pay_2, into = c("annual_pay"), sep = " ") %>%
-      mutate(annual_pay = parse_number(annual_pay))
-
-    country_number <- mws2 %>% count(Country)
-
-    mws3 <- country_number %>%
-      right_join(mws2, by = "Country") %>%
-      group_by(Country) %>%
-      mutate(avg_annual_pay_country = sum(annual_pay) / n) %>%
-      group_by(Country, avg_annual_pay_country) %>%
-      count() %>%
-      mutate(year = 2017)
-
-    missing_countries <- mws_18 %>%
-      select(country, avg_basic_annual_1) %>%
-      drop_na() %>%
-      filter(country %in% c("AUSTRALIA ASIA", "MEXICO", "SWEDEN EUROPE")) %>%
-      mutate(year = 2018) %>%
-      mutate(Country = country) %>%
-      mutate(avg_annual_pay_country = parse_number(avg_basic_annual_1)) %>%
-      select(Country, avg_annual_pay_country, year)
-
-
-    mws4 <- mws3 %>%
-      bind_rows(missing_countries) %>%
-      mutate(country_clean = case_when(
-        Country == "AUSTRALIA ASIA" ~ "Australia",
-        Country == "SWEDEN EUROPE" ~ "Sweden",
-        Country == "MEXICO" ~ "Mexico",
-        TRUE ~ Country
-      )) %>%
-      mutate(Gender = "Men")
-
-    wws2 <- wws %>%
-      filter(sport == "Football") %>%
-      select(u_s, country) %>%
-      mutate(avg_salary = parse_number(u_s)) %>%
-      mutate(Gender = "Women") %>%
-      mutate(year = 2017)
-
-    graph_data <- wws2 %>%
-      full_join(mws4, by = c("avg_salary" = "avg_annual_pay_country", "country" = "country_clean", "Gender" = "Gender", "year" = "year")) %>%
-      select(avg_salary, country, year, Gender) %>%
-      filter(!country %in% c("Scotland", "Spain", "Italy", "Japan"))
-
-    graph_data %>%
-      filter(Gender %in% c(input$gender)) %>%
-      ggplot(aes(x = country, y = avg_salary, fill = Gender)) +
-      geom_col(position = "dodge") +
-      scale_fill_manual(values = c("Men" = "cadetblue", "Women" = "lightcoral")) +
-      labs(
-        x = "Country",
-        y = "Average Annual Salary",
-        title = "Average Annual Salary in Selected Professional Soccer Leagues, 2017",
-        caption = "Data from Global Sports Salary Survey 2017 and 2018."
-      ) +
-      theme_minimal() +
-      theme(plot.title = element_text(hjust = 0.5))
   })
 }
 
