@@ -57,7 +57,7 @@ ui <- fluidPage(
         tabPanel("World Cup Bonuses", 
                  sidebarPanel(
                    selectInput("stage", "Stage", 
-                               choices = c(1:7), 
+                               choices = c(1,2,3,4,5,6,7), 
                                selected = "Start")),
                  plotOutput("plot2"),
         tabPanel("Tabel 3")
@@ -218,8 +218,9 @@ server <- function(input, output) {
                                 stage == "Winning world cup" ~ 6,
                                 TRUE ~ 7))
     
-    filter(number <= as.double(input$stage)) %>% 
-      ggplot(bonuses2, aes(x = number, y = cumulative)) +
+    bonuses2 %>% 
+      filter(number <= input$stage) %>% 
+      ggplot(aes(x = number, y = cumulative)) +
       geom_point() +
       geom_line() +
       facet_wrap(~team) +
