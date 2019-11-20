@@ -32,6 +32,9 @@ ui <- fluidPage(
     CONTINENT = col_character(),
     X4 = col_character()
   )) %>% clean_names(),
+  
+  bonuses <- read_excel("raw-data/World cup bonuses.xlsx") %>% clean_names, 
+  
 
   navbarPage(
     "Equal Work, Equal Pay? Women's Soccer in 2019",
@@ -40,7 +43,7 @@ ui <- fluidPage(
       "USWNT equal pay lawsuit",
       tabsetPanel(
         tabPanel(
-          "Comparing Revenue",
+          "Expenses and Revenue",
           sidebarPanel(
             radioButtons("rev_exp_net",
               "Display",
@@ -51,10 +54,15 @@ ui <- fluidPage(
             plotOutput("plot1")
           )
         ),
-        tabPanel("Tabel 2"),
+        tabPanel("World Cup Bonuses", 
+                 sidebarPanel(
+                   selectInput("stage", "Stage", 
+                               choices = c(1:7), 
+                               selected = "Start")),
+                 plotOutput("plot2"),
         tabPanel("Tabel 3")
       )
-    ),
+    )),
     tabPanel(
       "State of women's Soccer Worldwide",
       h5("The question of equal (or unequal) investment in women's and 
@@ -71,14 +79,14 @@ ui <- fluidPage(
       ), 
       h3("USA"),
       column(
-        3,
+        4,
         "The American professional soccer leagues are Major League Soccer (MLS) 
                    and the National Women's Soccer League (NWSL). Many USMNT hopefuls 
                    play in the MLS, while it USWNT players are practically required to play in the NWSL."
       ),
       
       column(
-        9,
+        8,
         img(src = "plot5.png")
       )),
     tabPanel(
@@ -187,6 +195,42 @@ server <- function(input, output) {
       theme(
         plot.title = element_text(hjust = 0.5)
       )
+  })
+  
+  output$plot2 <- renderPlot({
+    bonuses2 <- bonuses %>%
+      select(stage, women, men, cumulative_women, cumulative_men) %>%
+      pivot_longer(
+        cols = c("women", "men"), names_to = "team", values_to = c("Value")
+      ) %>% 
+      pivot_longer(cols = c("cumulative_women", "cumulative_men"), names_to = "team2", values_to = "cumulative") %>% 
+      mutate(keep = case_when(team == "men" & team2 == "cumulative_women" ~ FALSE, 
+                              team == "women" & team2 == "cumulative_men" ~ FALSE,
+                              TRUE ~ TRUE
+      )) %>% 
+      filter(keep == "TRUE") %>% 
+      select(stage, team, Value, cumulative) %>% 
+      mutate(number = case_when(stage == "Start" ~ 1,
+                                stage == "Qualifying" ~ 2, 
+                                stage == "Winning qualification games" ~ 3, 
+                                stage == "Named to world cup team" ~ 4,
+                                stage == "Advance to knockout" ~ 5, 
+                                stage == "Winning world cup" ~ 6,
+                                TRUE ~ 7))
+    
+    filter(number <= as.double(input$stage)) %>% 
+      ggplot(bonuses2, aes(x = number, y = cumulative)) +
+      geom_point() +
+      geom_line() +
+      facet_wrap(~team) +
+      scale_x_continuous(breaks = c(1,2,3,4,5,6,7), labels = c("Start", "Qualifying", "Winning qualification games", "Named to world cup team", "Advance to knockout", "Winning world cup", "Victory tour")) +
+      labs(men = "USMNT", 
+           women = "USWNT", 
+           x = "Stage",
+           y = "Cumulative") +
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+    
   })
 
   output$plot9 <- renderPlot({
