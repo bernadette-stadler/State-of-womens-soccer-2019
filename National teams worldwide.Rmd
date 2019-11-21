@@ -52,7 +52,7 @@ mws2 <- mws %>% filter(league == "EPL" | league == "Bundesliga" | league == "Lig
                              )) %>% 
   select(league, avg_annual_pay_2, Country) %>% 
   mutate(avg_annual_pay_2 = if_else(avg_annual_pay_2 == "$6,739,250($129,601)", "$6,739,250 ($129,601)", avg_annual_pay_2)) %>% 
-  separate(avg_annual_pay_2, into = c("annual_pay"), sep = " ") %>% 
+  separate(avg_annual_pay_2, into = c("annual_pay"), sep = " ",extra = "drop") %>% 
   mutate(annual_pay = parse_number(annual_pay))
 
 country_number <- mws2 %>% count(Country)
@@ -61,8 +61,7 @@ mws3 <- country_number %>% right_join(mws2, by = "Country") %>%
   group_by(Country) %>% 
   mutate(avg_annual_pay_country = sum(annual_pay)/n) %>% 
   group_by(Country, avg_annual_pay_country) %>% 
-  count() %>% 
-  mutate(year = 2017)
+  count()
 
 missing_countries <- mws_18 %>% select(country, avg_basic_annual_1) %>% 
   drop_na() %>% 
@@ -91,7 +90,9 @@ graph_data <- wws2 %>% full_join(mws4, by = c("avg_salary" = "avg_annual_pay_cou
 ```
 
 ```{r}
-ggplot(graph_data, aes(x = country, y = avg_salary, fill = Gender)) +
+graph_data %>%
+  filter(Gender == "W" | Gender == "M") %>%
+ggplot(aes(x = country, y = avg_salary, fill = Gender)) +
   geom_col(position = "dodge") +
   scale_fill_manual(values = c("cadetblue", "lightcoral")) + 
   labs(x = "Country", 

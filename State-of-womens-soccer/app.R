@@ -1,4 +1,5 @@
 library(shiny)
+library(readr)
 library(ggplot2)
 library(plotly)
 library(readxl)
@@ -7,6 +8,7 @@ library(reshape2)
 library(scales)
 library(gt)
 library(tidyverse)
+
 
 
 # Define UI for application that draws a histogram
@@ -48,10 +50,9 @@ ui <- fluidPage(
           sidebarPanel(
             checkboxGroupInput("rev_exp_net",
               "Display",
-              choices = c("Revenue", "Expenses"), 
-                          selected = c("Revenue", "Expense")), 
-            checkboxInput("rev_exp_line", "Add line showing net income", value = FALSE)
-            ),
+              choices = c("Revenue", "Expenses", "Net"), 
+                          selected = c("Revenue", "Expense"))
+            ), 
           mainPanel(
             plotOutput("plot1")
           )
@@ -74,7 +75,9 @@ ui <- fluidPage(
                    investment in men's and women's soccer at the professional level
                    throughout the world."),
       h3("World Snapshot"),
-      sidebarPanel(checkboxGroupInput("gender", "Select", choices = c("Women", "Men"), selected = c("Men", "Women")), 
+      sidebarPanel(checkboxGroupInput("gender", "Select", 
+                                      choices = c("Women", "Men"), 
+                                      selected = c("Women", "Men")), 
         "Note: Data for the men's leagues in Sweden, Australia and Mexico was not 
                    available for 2017, so I am using data from 2018 as a proxy."
       ),
@@ -159,7 +162,7 @@ server <- function(input, output) {
         fiscal_year == "2019 (projected)", 2019, as.double(fiscal_year)
       )) %>%
       mutate(Team = if_else(Team == "womens_revenue", "USWNT", "USMNT"))
-
+    
     exp <- rev_exp %>%
       select(fiscal_year, womens_expenses, mens_expenses) %>%
       pivot_longer(
@@ -171,7 +174,7 @@ server <- function(input, output) {
         fiscal_year == "2019 (projected)", 2019, as.double(fiscal_year)
       )) %>%
       mutate(Team = if_else(Team == "womens_expenses", "USWNT", "USMNT"))
-
+    
     rev_exp_formatted <- exp %>%
       left_join(rev, by = c("fiscal_year", "Team")) %>%
       mutate(Expenses = if_else(is.na(Expenses), 0, Expenses)) %>%
@@ -182,12 +185,14 @@ server <- function(input, output) {
         names_to = "Type",
         values_to = "Amount"
       )
-
-    rev_exp_plot <- rev_exp_formatted %>%
-      filter(Type == input$rev_exp_net) %>%
+    
+    rev_exp_formatted$Type <- factor(rev_exp_formatted$Type , levels = c("Revenue", "Expenses", "Net"))
+    
+    rev_exp_formatted %>%
+      filter(Type %in% c(input$rev_exp_net)) %>%
       ggplot(aes(x = fiscal_year, y = Amount, fill = Type)) +
       geom_col(position = "dodge") +
-      scale_fill_manual(values = c("Expenses" = "red", "Revenue" = "green", "Net" = "black")) +
+      scale_fill_manual(values = c("Expenses" = "red", "Revenue" = "green","Net" = "black")) +
       facet_wrap(~Team) +
       labs(
         x = "Fiscal Year",
@@ -199,7 +204,7 @@ server <- function(input, output) {
       theme(
         plot.title = element_text(hjust = 0.5)
       )
-  
+    
   })
   
   output$plot9 <- renderPlot({
@@ -227,16 +232,14 @@ server <- function(input, output) {
       group_by(Country) %>% 
       mutate(avg_annual_pay_country = sum(annual_pay)/n) %>% 
       group_by(Country, avg_annual_pay_country) %>% 
-      count() %>% 
-      mutate(year = 2017)
+      count()
     
     missing_countries <- mws_18 %>% select(country, avg_basic_annual_1) %>% 
       drop_na() %>% 
       filter(country %in% c("AUSTRALIA ASIA", "MEXICO", "SWEDEN EUROPE")) %>%
-      mutate(year = 2018) %>% 
       mutate(Country = country) %>% 
       mutate(avg_annual_pay_country = parse_number(avg_basic_annual_1)) %>% 
-      select(Country, avg_annual_pay_country, year)
+      select(Country, avg_annual_pay_country)
     
     
     mws4 <- mws3 %>% bind_rows(missing_countries) %>% 
@@ -248,16 +251,17 @@ server <- function(input, output) {
     
     wws2 <- wws %>% filter(sport == "Football") %>% select(u_s, country) %>% 
       mutate(avg_salary = parse_number(u_s)) %>%
-      mutate(Gender = "Women") %>% 
-      mutate(year = 2017)
+      mutate(Gender = "Women")
     
-    graph_data <- wws2 %>% full_join(mws4, by = c("avg_salary" = "avg_annual_pay_country", "country" = "country_clean", "Gender" = "Gender", "year" = "year")) %>% 
-      select(avg_salary, country, year, Gender) %>% 
+    graph_data <- wws2 %>% full_join(mws4, by = c("avg_salary" = "avg_annual_pay_country", "country" = "country_clean", "Gender" = "Gender")) %>% 
+      select(avg_salary, country, Gender) %>% 
       filter(!country %in% c("Scotland", "Spain", "Italy", "Japan"))
-
-    ggplot(graph_data, aes(x = country, y = avg_salary, fill = Gender)) +
+    
+    graph_data %>% 
+      filter(Gender %in% c(input$gender)) %>%
+    ggplot(aes(x = country, y = avg_salary, fill = Gender)) +
       geom_col(position = "dodge") +
-      scale_fill_manual(values = c("purple4", "red")) + 
+      scale_fill_manual(values = c("Men" = "purple4", "Women" = "red")) + 
       labs(x = "Country", 
            y = "Average Annual Salary", 
            title = "Average Annual Salary in Selected Professional Soccer Leagues, 2017", 

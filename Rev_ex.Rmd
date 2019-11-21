@@ -6,11 +6,17 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+```
+
+```{r read in data}
+rev_exp <- read_excel("raw-data/Revenue and expense data.xlsx") %>%
+    clean_names()
 ```
 
 
-```{r}
+```{r format data}
     rev <- rev_exp %>%
       select(fiscal_year, womens_revenue, mens_revenue) %>%
       pivot_longer(
@@ -22,7 +28,7 @@ knitr::opts_chunk$set(echo = TRUE)
         fiscal_year == "2019 (projected)", 2019, as.double(fiscal_year)
       )) %>%
       mutate(Team = if_else(Team == "womens_revenue", "USWNT", "USMNT"))
-
+    
     exp <- rev_exp %>%
       select(fiscal_year, womens_expenses, mens_expenses) %>%
       pivot_longer(
@@ -34,7 +40,7 @@ knitr::opts_chunk$set(echo = TRUE)
         fiscal_year == "2019 (projected)", 2019, as.double(fiscal_year)
       )) %>%
       mutate(Team = if_else(Team == "womens_expenses", "USWNT", "USMNT"))
-
+    
     rev_exp_formatted <- exp %>%
       left_join(rev, by = c("fiscal_year", "Team")) %>%
       mutate(Expenses = if_else(is.na(Expenses), 0, Expenses)) %>%
@@ -45,11 +51,17 @@ knitr::opts_chunk$set(echo = TRUE)
         names_to = "Type",
         values_to = "Amount"
       )
+    
+    rev_exp_formatted$Type <- factor(rev_exp_formatted$Type , levels = c("Revenue", "Expenses", "Net"))
+```
 
+
+```{r make graph}
+    
     rev_exp_formatted %>%
       ggplot(aes(x = fiscal_year, y = Amount, fill = Type)) +
       geom_col(position = "dodge") +
-      scale_fill_manual(values = c("Expenses" = "red", "Revenue" = "green", "Net" = "black")) +
+      scale_fill_manual(values = c("Expenses" = "red", "Revenue" = "green","Net" = "black")) +
       facet_wrap(~Team) +
       labs(
         x = "Fiscal Year",
@@ -61,6 +73,5 @@ knitr::opts_chunk$set(echo = TRUE)
       theme(
         plot.title = element_text(hjust = 0.5)
       )
-
 ```
 
