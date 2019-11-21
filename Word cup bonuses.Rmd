@@ -11,64 +11,68 @@ library(readxl)
 library(janitor)
 library(gt)
 library(scales)
+library(webshot)
 library(tidyverse)
 ```
 
 ```{r read in and clean data}
 
-bonuses <- read_excel("raw-data/World cup bonuses.xlsx") %>% clean_names
+bonuses <- read_excel("raw-data/World cup bonuses.xlsx") %>% clean_names()
 
-# read in data, clean names 
+# read in data, clean names
 
 bonuses2 <- bonuses %>%
   select(stage, women, men, cumulative_women, cumulative_men) %>%
-  
-  # select columns of interest 
-  
+
+  # select columns of interest
+
   pivot_longer(
     cols = c("women", "men"), names_to = "team", values_to = c("Value")
-    ) %>% 
-  
-  # pivot longer so that men and women are in the column team so that I will 
-  # be able to facet wrap by team later to make two side-by-side graphc 
-  
-  pivot_longer(cols = c("cumulative_women", "cumulative_men"), names_to = "team2", values_to = "cumulative") %>% 
-  
-  # pivot longer again to get all of the cumulative data in one column. 
-  # unfortunatey this second pivot gave me some wierd rows that had both women 
-  # and men_cumulative or vice versa. So, see next step ... 
-  
-  mutate(keep = case_when(team == "men" & team2 == "cumulative_women" ~ FALSE, 
-                   team == "women" & team2 == "cumulative_men" ~ FALSE,
-                   TRUE ~ TRUE
-                   )) %>% 
-  
-  # make a new column that identifies which rows mix teams with FALSE. 
-  
-  filter(keep == "TRUE") %>% 
-  
-  # filter for the rows that did not mixt teams, which I labeled as TRUE 
-  # in the last step 
-  
-  select(stage, team, Value, cumulative) %>% 
-  
-  # select variables of interest 
-  
-  mutate(team = if_else(team == "women", "USWNT", "USMNT")) %>%
-  
-  # change "men" and "women" to "USWNT" and "USMNT" to make the graph look more 
-  # professional 
-  
-  mutate(number = case_when(stage == "Start" ~ 1,
-                            stage == "Qualifying" ~ 2, 
-                            stage == "Winning qualification games" ~ 3, 
-                            stage == "Named to world cup team" ~ 4,
-                            stage == "Advance to knockout" ~ 5, 
-                            stage == "Winning world cup" ~ 6,
-                            TRUE ~ 7))
+  ) %>%
 
-  # give each stage a number. This allows me to make a line chart below (I was 
-  # having some issues when I was using the discrete charcter values). 
+  # pivot longer so that men and women are in the column team so that I will
+  # be able to facet wrap by team later to make two side-by-side graphc
+
+  pivot_longer(cols = c("cumulative_women", "cumulative_men"), names_to = "team2", values_to = "cumulative") %>%
+
+  # pivot longer again to get all of the cumulative data in one column.
+  # unfortunatey this second pivot gave me some wierd rows that had both women
+  # and men_cumulative or vice versa. So, see next step ...
+
+  mutate(keep = case_when(
+    team == "men" & team2 == "cumulative_women" ~ FALSE,
+    team == "women" & team2 == "cumulative_men" ~ FALSE,
+    TRUE ~ TRUE
+  )) %>%
+
+  # make a new column that identifies which rows mix teams with FALSE.
+
+  filter(keep == "TRUE") %>%
+
+  # filter for the rows that did not mixt teams, which I labeled as TRUE
+  # in the last step
+
+  select(stage, team, Value, cumulative) %>%
+
+  # select variables of interest
+
+  mutate(team = if_else(team == "women", "USWNT", "USMNT")) %>%
+
+  # change "men" and "women" to "USWNT" and "USMNT" to make the graph look more
+  # professional
+
+  mutate(number = case_when(
+    stage == "Start" ~ 1,
+    stage == "Qualifying" ~ 2,
+    stage == "Winning qualification games" ~ 3,
+    stage == "Named to world cup team" ~ 4,
+    stage == "Advance to knockout" ~ 5,
+    stage == "Winning world cup" ~ 6,
+    TRUE ~ 7
+  ))
+
+# give each stage a number. This allows me to make a line chart below (I was
+# having some issues when I was using the discrete charcter values). 
 
 ```
 
@@ -123,21 +127,79 @@ file_copy("graphics/world_cup_bonuses.png", new_path = "State-of-womens-soccer/w
 
 ```{r chart}
 
-sum_women <- bonuses %>% summarize(sum_women = sum(women)) %>% pull()
-sum_men <- bonuses %>% summarise(sum_men = sum(men)) %>% pull()
-sum_diff <- bonuses %>% summarise(sum_diff = sum(men) - sum(women)) %>% pull()
+# I wanted to add a "total" row to the chart. The best way to do this seemed
+# to be making a sum object for each column, making them into a tibble and then
+# using bind_rows. I am sure there is a more sophisticated way to do this though.
+
+sum_women <- bonuses %>%
+  summarize(sum_women = sum(women)) %>%
+  pull()
+sum_men <- bonuses %>%
+  summarise(sum_men = sum(men)) %>%
+  pull()
+sum_diff <- bonuses %>%
+  summarise(sum_diff = sum(men) - sum(women)) %>%
+  pull()
+
+# create the sums, making differne the sum of men minus the sum of women (note
+# the columns men and women hold the amount of money each team makes)
 
 total <- tibble("stage" = "Total", "women" = sum_women, "men" = sum_men, "Difference" = sum_diff)
 
-bonuses %>% 
-  select(stage, women, men) %>% 
+# create the tibble. I will bind it to the main tibble later
+
+world_cup_bonsuses_tab <- bonuses %>%
+  select(stage, women, men) %>%
+
+  # select variables of interest
+
   mutate(Difference = men - women) %>%
-  bind_rows(total) %>% 
-  mutate(women = dollar(women, scale = 1, prefix = "$")) %>% 
-  mutate(men = dollar(men, scale = 1, prefix ="$")) %>% 
-  mutate(Difference = dollar(Difference, scale = 1, prefix ="$")) %>% 
-  gt() %>% 
-  cols_label(stage = "Stage", women = "USWNT", men = "USMNT")
+
+  # add a "difference" column that is men minus women
+
+  bind_rows(total) %>%
+
+  # bind the total tibble I made above to the bonsuses tibble
+
+  mutate(women = dollar(women, scale = 1, prefix = "$")) %>%
+
+  # add dollar signs to women
+
+  mutate(men = dollar(men, scale = 1, prefix = "$")) %>%
+
+  # add dollar signs to men
+
+  mutate(Difference = dollar(Difference, scale = 1, prefix = "$")) %>%
+
+  # add dollar signs to Difference
+
+  gt() %>%
+
+  # make a chart
+  
+  tab_header("World Cup Bonuses per Stage") %>%
+
+  cols_label(stage = "Stage", women = "USWNT", men = "USMNT") %>%
+
+  # rename columns
+
+  tab_style(
+    style = list(cell_text(color = "red")),
+    locations = cells_data(columns = vars(Difference), rows = 7)
+  )
+
+# this is a fun trick -- make the negative number red by calling it's position
+# in the table and applying the color to that cell
+
+gtsave(world_cup_bonuses_tab, "world_cup_bonuses_tab.html")
+
+# save my plot as an html file 
+
+file_move("world_cup_bonuses_tab.html", "graphics/world_cup_bonuses_tab.html")
+
+file_copy("graphics/world_cup_bonuses_tab.html", new_path = "State-of-womens-soccer/www/world_cup_bonuses_tab.html", overwrite = TRUE)
+
+  # copy the file into my app 
 
 ```
 

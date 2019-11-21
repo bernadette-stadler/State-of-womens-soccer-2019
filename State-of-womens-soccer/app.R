@@ -56,7 +56,13 @@ ui <- fluidPage(
           )
         ),
         tabPanel("World Cup Bonuses",
+                 br(),
+                 "Insert some text",
                  img(src = "world_cup_bonuses.png"), 
+                 br(),
+                 "Insert some text", 
+                 br(),
+                 includeHTML("www/world_cup_bonuses_tab.html"),
         tabPanel("Tabel 3")
       )
     )),
@@ -194,42 +200,71 @@ server <- function(input, output) {
       )
   })
   
-  output$plot2 <- renderPlot({
-    bonuses2 <- bonuses %>%
-      select(stage, women, men, cumulative_women, cumulative_men) %>%
-      pivot_longer(
-        cols = c("women", "men"), names_to = "team", values_to = c("Value")
-      ) %>% 
-      pivot_longer(cols = c("cumulative_women", "cumulative_men"), names_to = "team2", values_to = "cumulative") %>% 
-      mutate(keep = case_when(team == "men" & team2 == "cumulative_women" ~ FALSE, 
-                              team == "women" & team2 == "cumulative_men" ~ FALSE,
-                              TRUE ~ TRUE
-      )) %>% 
-      filter(keep == "TRUE") %>% 
-      select(stage, team, Value, cumulative) %>% 
-      mutate(number = case_when(stage == "Start" ~ 1,
-                                stage == "Qualifying" ~ 2, 
-                                stage == "Winning qualification games" ~ 3, 
-                                stage == "Named to world cup team" ~ 4,
-                                stage == "Advance to knockout" ~ 5, 
-                                stage == "Winning world cup" ~ 6,
-                                TRUE ~ 7))
+  output$plot9 <- renderPlot({
     
-    bonuses2 %>% 
-      filter(number <= input$stage) %>% 
-      ggplot(aes(x = number, y = cumulative)) +
-      geom_point() +
-      geom_line() +
-      facet_wrap(~team) +
-      scale_x_continuous(breaks = c(1,2,3,4,5,6,7), labels = c("Start", "Qualifying", "Winning qualification games", "Named to world cup team", "Advance to knockout", "Winning world cup", "Victory tour")) +
-      labs(men = "USMNT", 
-           women = "USWNT", 
-           x = "Stage",
-           y = "Cumulative") +
+    mws2 <- mws %>% filter(league == "EPL" | league == "Bundesliga" | league == "Ligue 1" | league == "La Liga" | league == "Serie A" | league == "MLS" | league == "CSL" | league == "Scot Prem" | league == "J.League") %>% 
+      mutate(Country = case_when(league == "EPL" ~ "England", 
+                                 league == "Bundesliga" ~ "Germany", 
+                                 league == "Serie A" ~ "Italy", 
+                                 league == "Ligue 1" ~ "France", 
+                                 league == "La Liga" ~ "Spain", 
+                                 league == "MLS" ~ "USA", 
+                                 league == "CSL" ~ "China", 
+                                 league == "Scot Prem" ~ "Scotland", 
+                                 league == "J.League" ~ "Japan", 
+                                 TRUE ~ "NA"
+      )) %>% 
+      select(league, avg_annual_pay_2, Country) %>% 
+      mutate(avg_annual_pay_2 = if_else(avg_annual_pay_2 == "$6,739,250($129,601)", "$6,739,250 ($129,601)", avg_annual_pay_2)) %>% 
+      separate(avg_annual_pay_2, into = c("annual_pay"), sep = " ") %>% 
+      mutate(annual_pay = parse_number(annual_pay))
+    
+    country_number <- mws2 %>% count(Country)
+    
+    mws3 <- country_number %>% right_join(mws2, by = "Country") %>% 
+      group_by(Country) %>% 
+      mutate(avg_annual_pay_country = sum(annual_pay)/n) %>% 
+      group_by(Country, avg_annual_pay_country) %>% 
+      count() %>% 
+      mutate(year = 2017)
+    
+    missing_countries <- mws_18 %>% select(country, avg_basic_annual_1) %>% 
+      drop_na() %>% 
+      filter(country %in% c("AUSTRALIA ASIA", "MEXICO", "SWEDEN EUROPE")) %>%
+      mutate(year = 2018) %>% 
+      mutate(Country = country) %>% 
+      mutate(avg_annual_pay_country = parse_number(avg_basic_annual_1)) %>% 
+      select(Country, avg_annual_pay_country, year)
+    
+    
+    mws4 <- mws3 %>% bind_rows(missing_countries) %>% 
+      mutate(country_clean = case_when(Country == "AUSTRALIA ASIA" ~ "Australia", 
+                                       Country == "SWEDEN EUROPE" ~ "Sweden", 
+                                       Country == "MEXICO" ~ "Mexico", 
+                                       TRUE ~ Country)) %>% 
+      mutate(Gender = "Men")
+    
+    wws2 <- wws %>% filter(sport == "Football") %>% select(u_s, country) %>% 
+      mutate(avg_salary = parse_number(u_s)) %>%
+      mutate(Gender = "Women") %>% 
+      mutate(year = 2017)
+    
+    graph_data <- wws2 %>% full_join(mws4, by = c("avg_salary" = "avg_annual_pay_country", "country" = "country_clean", "Gender" = "Gender", "year" = "year")) %>% 
+      select(avg_salary, country, year, Gender) %>% 
+      filter(!country %in% c("Scotland", "Spain", "Italy", "Japan"))
+    
+    ggplot(graph_data, aes(x = country, y = avg_salary, fill = Gender)) +
+      geom_col(position = "dodge") +
+      scale_fill_manual(values = c("purple4", "red")) + 
+      labs(x = "Country", 
+           y = "Average Annual Salary", 
+           title = "Average Annual Salary in Selected Professional Soccer Leagues, 2017", 
+           caption = "Data from Global Sports Salary Survey 2017 and 2018.") +
       theme_minimal() +
-      theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+      theme(plot.title = element_text(hjust =0.5))
     
   })
+  
 }
 
 # Run the application
