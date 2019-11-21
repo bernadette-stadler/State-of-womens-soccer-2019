@@ -46,11 +46,12 @@ ui <- fluidPage(
         tabPanel(
           "Expenses and Revenue",
           sidebarPanel(
-            radioButtons("rev_exp_net",
+            checkboxGroupInput("rev_exp_net",
               "Display",
-              choices = c("Revenue", "Expenses", "Net")
-            )
-          ),
+              choices = c("Revenue", "Expenses"), 
+                          selected = c("Revenue", "Expense")), 
+            checkboxInput("rev_exp_line", "Add line showing net income", value = FALSE)
+            ),
           mainPanel(
             plotOutput("plot1")
           )
@@ -182,11 +183,11 @@ server <- function(input, output) {
         values_to = "Amount"
       )
 
-    rev_exp_formatted %>%
+    rev_exp_plot <- rev_exp_formatted %>%
       filter(Type == input$rev_exp_net) %>%
-      ggplot() +
-      geom_col(aes(x = fiscal_year, y = Amount, fill = Team)) +
-      scale_fill_manual(values = c("purple4", "red")) +
+      ggplot(aes(x = fiscal_year, y = Amount, fill = Type)) +
+      geom_col(position = "dodge") +
+      scale_fill_manual(values = c("Expenses" = "red", "Revenue" = "green", "Net" = "black")) +
       facet_wrap(~Team) +
       labs(
         x = "Fiscal Year",
@@ -198,6 +199,7 @@ server <- function(input, output) {
       theme(
         plot.title = element_text(hjust = 0.5)
       )
+  
   })
   
   output$plot9 <- renderPlot({
@@ -252,7 +254,7 @@ server <- function(input, output) {
     graph_data <- wws2 %>% full_join(mws4, by = c("avg_salary" = "avg_annual_pay_country", "country" = "country_clean", "Gender" = "Gender", "year" = "year")) %>% 
       select(avg_salary, country, year, Gender) %>% 
       filter(!country %in% c("Scotland", "Spain", "Italy", "Japan"))
-    
+
     ggplot(graph_data, aes(x = country, y = avg_salary, fill = Gender)) +
       geom_col(position = "dodge") +
       scale_fill_manual(values = c("purple4", "red")) + 
