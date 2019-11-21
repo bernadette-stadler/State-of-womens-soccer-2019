@@ -13,7 +13,6 @@ library(readxl)
 library(janitor)
 library(reshape2)
 library(scales)
-library(plotly)
 ```
 
 ```{r read in data, include = FALSE}
@@ -87,7 +86,7 @@ plot5 <- min_or_max_data %>%
   # area between the lines. So on take three, I decided to plot them
   # separately.
 
-  geom_ribbon(aes(x = season, ymin = min_salary, ymax = max_salary), alpha = 0.05) +
+  geom_ribbon(aes(x = season, ymin = min_salary, ymax = max_salary), alpha = 0.05, fill = "black") +
 
   # add geom_ribbon to shade the area between the min and max lines.
 

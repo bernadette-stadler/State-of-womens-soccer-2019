@@ -45,18 +45,7 @@ ui <- fluidPage(
     tabPanel(
       "USWNT equal pay lawsuit",
       tabsetPanel(
-        tabPanel(
-          "Expenses and Revenue",
-          sidebarPanel(
-            checkboxGroupInput("rev_exp_net",
-              "Display",
-              choices = c("Revenue", "Expenses", "Net"), 
-                          selected = c("Revenue", "Expense"))
-            ), 
-          mainPanel(
-            plotOutput("plot1")
-          )
-        ),
+        tabPanel("Regular Season Salaries"), 
         tabPanel("World Cup Bonuses",
                  br(),
                  "Insert some text",
@@ -64,10 +53,22 @@ ui <- fluidPage(
                  br(),
                  "Insert some text", 
                  br(),
-                 includeHTML("www/world_cup_bonuses_tab.html"),
-        tabPanel("Tabel 3")
+                 includeHTML("www/world_cup_bonuses_tab.html") 
+                 ),
+        tabPanel(
+          "Expenses and Revenue",
+          sidebarPanel(
+            checkboxGroupInput("rev_exp_net",
+                               "Display",
+                               choices = c("Revenue", "Expenses", "Net"), 
+                               selected = c("Revenue", "Expense"))
+          ), 
+          mainPanel(
+            plotOutput("plot1")
+          )
+        )
       )
-    )),
+      ),
     tabPanel(
       "State of women's Soccer Worldwide",
       h5("The question of equal (or unequal) investment in women's and 
@@ -91,7 +92,6 @@ ui <- fluidPage(
                    and the National Women's Soccer League (NWSL). Many USMNT hopefuls 
                    play in the MLS, while it USWNT players are practically required to play in the NWSL."
       ),
-      
       column(
         8,
         img(src = "plot5.png")
@@ -192,7 +192,7 @@ server <- function(input, output) {
       filter(Type %in% c(input$rev_exp_net)) %>%
       ggplot(aes(x = fiscal_year, y = Amount, fill = Type)) +
       geom_col(position = "dodge") +
-      scale_fill_manual(values = c("Expenses" = "red", "Revenue" = "green","Net" = "black")) +
+      scale_fill_manual(values = c("Expenses" = "coral1", "Revenue" = "lightgreen","Net" = "black")) +
       facet_wrap(~Team) +
       labs(
         x = "Fiscal Year",
