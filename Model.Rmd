@@ -7,8 +7,9 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(fs)
 library(tidyverse)
-library(tidymodels)
+
 ```
 
 ```{r}
@@ -25,28 +26,83 @@ model_data <- read_csv("raw-data/womens-football-2019-clean.csv",
                     `Mixed-gender football?` = col_character()
 )) %>% clean_names() 
 
-model_data2 <- model_data %>% mutate(gendergap_18 = as.numeric(global_gender_gap_ranking_2018))%>% 
-  mutate(fifa_19 = as.numeric(fifa_wf_ranking_2019)) %>% 
-  select(x1, population, gendergap_18, fifa_19) %>% drop_na()
+unzip("raw-data/API_NY.GDP.MKTP.CD_DS2_en_csv_v2_511444.zip")
+
+file_move("API_NY.GDP.MKTP.CD_DS2_en_csv_v2_511444.csv", "raw-data/GDP_data.csv")
+
+file_copy("raw-data/GDP_data.csv", "State-of-womens-soccer/raw-data/GDP_data.csv")
+
+file_delete("Metadata_Country_API_NY.GDP.MKTP.CD_DS2_en_csv_v2_511444.csv")
+
+file_delete("Metadata_Indicator_API_API_NY.GDP.MKTP.CD_DS2_en_csv_v2_511444.csv")
+
+gdp_data <- read_csv("raw-data/GDP_data.csv", skip =4, 
+                     col_types = cols(
+  .default = col_double(),
+  `Country Name` = col_character(),
+  `Country Code` = col_character(),
+  `Indicator Name` = col_character(),
+  `Indicator Code` = col_character(),
+  `2019` = col_logical(),
+  X65 = col_logical()
+)) %>% clean_names()
+
+gender_index <- read_csv("raw-data/data.csv", 
+         col_types = cols(
+  `Country ISO3` = col_character(),
+  `Country Name` = col_character(),
+  `Indicator Id` = col_double(),
+  Indicator = col_character(),
+  `Subindicator Type` = col_character(),
+  `2006` = col_double(),
+  `2007` = col_double(),
+  `2008` = col_double(),
+  `2009` = col_double(),
+  `2010` = col_double(),
+  `2011` = col_double(),
+  `2012` = col_double(),
+  `2013` = col_double(),
+  `2014` = col_double(),
+  `2015` = col_double(),
+  `2016` = col_double(),
+  `2018` = col_double()
+)) %>% clean_names()
 
 ```
 
 ```{r}
-ggplot(model_data2, aes(x = gendergap_18, y = fifa_19)) + 
-  geom_point() +
-  geom_smooth(formula = y ~ x,method = "lm")
+model_data2 <- model_data %>% mutate(gendergap_18 = as.numeric(global_gender_gap_ranking_2018, na.rm = TRUE))%>% 
+  mutate(fifa_19 = as.numeric(fifa_wf_ranking_2019, na.rm = TRUE)) %>% 
+  mutate(fem_players = as.numeric(female_players_playing_organized_football, na.rm = TRUE)) %>%
+  select(x1, population, gendergap_18, fifa_19, fem_players)
 
-model <- lm(fifa_19 ~ gendergap_18, data = model_data2)
+gdp_clean <- gdp_data %>% select(country_name, indicator_name, x2018)
+
+gender_index_clean <- gender_index %>% select(country_name, indicator, subindicator_type, x2018) %>% filter(indicator == "Overall Global Gender Gap Index" & subindicator_type == "Rank")
+
+merge_1 <- gdp_clean %>% left_join(gender_index_clean, by = "country_name") %>%
+  mutate(GDP = x2018.x) %>% 
+  mutate(gender_rank = x2018.y) %>% 
+  select(country_name, GDP, gender_rank)
+
+merge_2 <- model_data2 %>% left_join(merge_1, by = c("gendergap_18" = "gender_rank"))
+```
+
+```{r}
+
+ggplot(merge_2, aes(x = GDP, y = fifa_19)) + 
+  geom_point() +
+  geom_smooth(formula = y ~ x, method = "lm")
+
+model <- lm(fifa_19 ~ GDP, data = merge_2)
 
 tidy(model)
 
 glance(model)
 
-model2 <- lm(fifa_19 ~ population + gendergap_18, data = model_data2)
+model2 <- lm(fifa_19 ~ fem_players, data = model_data2)
 
 glance(model2)
-
-metrics(model, truth = fifa_19)
 
 ```
 
