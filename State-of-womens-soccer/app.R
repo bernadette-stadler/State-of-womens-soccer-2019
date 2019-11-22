@@ -9,9 +9,8 @@ library(scales)
 library(gt)
 library(tidyverse)
 
+# Define UI for application
 
-
-# Define UI for application that draws a histogram
 ui <- fluidPage(
   rev_exp <- read_excel("raw-data/Revenue and expense data.xlsx") %>%
     clean_names(),
@@ -27,75 +26,82 @@ ui <- fluidPage(
     Players = col_double()
   )) %>% clean_names(),
 
-  # read in women's salaries data (from Global Sports Salaries Survey 2017)
+  # read in womens salaries data
 
-  mws <- read_csv("raw-data/tabula-GSSS 2017_2.csv", col_types = cols(
+  mws <- suppressWarnings(read_csv("raw-data/tabula-GSSS 2017_2.csv", col_types = cols(
     RANK = col_character(),
     TEAM = col_character(),
     LEAGUE = col_character()
-  )) %>%
+  ))) %>%
     drop_na() %>%
     filter(!LEAGUE == "LEAGUE") %>%
     clean_names(),
 
-  # read in men's salaries data from GSSS 2017
+  # read in mens salaries data for 2017.Use suppress warnings because I got a warning
+  # saying that a missing column name was filled in with X4 that I couldn't get to
+  # to go away. Filter to get rid of multiple table headers from subsequent pages of
+  # the document I scraped it from.
 
-  mws_18 <- read_csv("raw-data/tabula-GSSS 2018.csv", col_types = cols(
+  mws_18 <- suppressWarnings(read_csv("raw-data/tabula-GSSS 2018.csv", col_types = cols(
     COUNTRY = col_character(),
     CONTINENT = col_character(),
     X4 = col_character()
-  )) %>% clean_names(),
+  ))) %>% clean_names(),
 
-  # read in men's salaries data from GSSS 2018
+  # read in mens salaries data for 2018.Use suppress warnings for same reason as above
 
   bonuses <- read_excel("raw-data/World cup bonuses.xlsx") %>% clean_names(),
 
   # read in bonuses data (manually compiled from Guardian article)
-  
-  model_data <- read_csv("raw-data/womens-football-2019-clean.csv", 
-                         col_types = cols(
-                           X1 = col_character(),
-                           Population = col_number(),
-                           `Global Gender Gap Ranking 2018` = col_character(),
-                           `FIFA WF Ranking 2019` = col_character(),
-                           `Female players playing organized football` = col_character(),
-                           `licesned coaches` = col_character(),
-                           `licensed referees` = col_character(),
-                           `Women's soccer strategy?` = col_character(),
-                           `Mixed-gender football?` = col_character()
-                         )) %>% clean_names(), 
-  
-  gdp_data <- read_csv("raw-data/GDP_data.csv", skip =4, 
-                       col_types = cols(
-                         .default = col_double(),
-                         `Country Name` = col_character(),
-                         `Country Code` = col_character(),
-                         `Indicator Name` = col_character(),
-                         `Indicator Code` = col_character(),
-                         `2019` = col_logical(),
-                         X65 = col_logical()
-                       )) %>% clean_names(), 
-  
-  gender_index <- read_csv("raw-data/data.csv", 
-                           col_types = cols(
-                             `Country ISO3` = col_character(),
-                             `Country Name` = col_character(),
-                             `Indicator Id` = col_double(),
-                             Indicator = col_character(),
-                             `Subindicator Type` = col_character(),
-                             `2006` = col_double(),
-                             `2007` = col_double(),
-                             `2008` = col_double(),
-                             `2009` = col_double(),
-                             `2010` = col_double(),
-                             `2011` = col_double(),
-                             `2012` = col_double(),
-                             `2013` = col_double(),
-                             `2014` = col_double(),
-                             `2015` = col_double(),
-                             `2016` = col_double(),
-                             `2018` = col_double()
-                           )) %>% clean_names(), 
+
+  model_data <- read_csv("raw-data/womens-football-2019-clean.csv",
+    col_types = cols(
+      X1 = col_character(),
+      Population = col_number(),
+      `Global Gender Gap Ranking 2018` = col_character(),
+      `FIFA WF Ranking 2019` = col_character(),
+      `Female players playing organized football` = col_character(),
+      `licesned coaches` = col_character(),
+      `licensed referees` = col_character(),
+      `Women's soccer strategy?` = col_character(),
+      `Mixed-gender football?` = col_character()
+    )
+  ) %>% clean_names(),
+
+  gdp_data <- read_csv("raw-data/GDP_data.csv",
+    skip = 4,
+    col_types = cols(
+      .default = col_double(),
+      `Country Name` = col_character(),
+      `Country Code` = col_character(),
+      `Indicator Name` = col_character(),
+      `Indicator Code` = col_character(),
+      `2019` = col_logical(),
+      X65 = col_logical()
+    )
+  ) %>% clean_names(),
+
+  gender_index <- read_csv("raw-data/data.csv",
+    col_types = cols(
+      `Country ISO3` = col_character(),
+      `Country Name` = col_character(),
+      `Indicator Id` = col_double(),
+      Indicator = col_character(),
+      `Subindicator Type` = col_character(),
+      `2006` = col_double(),
+      `2007` = col_double(),
+      `2008` = col_double(),
+      `2009` = col_double(),
+      `2010` = col_double(),
+      `2011` = col_double(),
+      `2012` = col_double(),
+      `2013` = col_double(),
+      `2014` = col_double(),
+      `2015` = col_double(),
+      `2016` = col_double(),
+      `2018` = col_double()
+    )
+  ) %>% clean_names(),
 
   navbarPage(
     "Equal Work, Equal Pay? Women's Soccer in 2019",
@@ -163,10 +169,9 @@ ui <- fluidPage(
                through the projected values for 2019. While the USWNT had generated
                less income for U.S. soccer in some years, the reverse is true in 
                others."),
-            plotOutput("plot1") 
+            plotOutput("plot1")
 
             # display the plot (created in the server)
-            
           )
         )
       )
@@ -177,7 +182,8 @@ ui <- fluidPage(
       # create and name a second tab
 
       tabsetPanel(
-        tabPanel("National league salaries",
+        tabPanel(
+          "National league salaries",
           h5("The question of equal (or unequal) investment in women's and 
                    men's soccer goes beyond the USWNT lawsuit. This section explores 
                    investment in men's and women's soccer at the professional level
@@ -209,23 +215,27 @@ ui <- fluidPage(
           )
         ),
         tabPanel(
-          "Model: Gender Equality and Performance", 
+          "Model: Gender Equality and Performance",
           sidebarPanel(
-          selectInput("model_input", "Independent Variable", 
-          choices = c("Gender Gap Index Rank", 
-                      "Number of registered female players", 
-                      "GDP", 
-                      "Population") 
-          )),
+            selectInput("model_input", "Independent Variable",
+              choices = c(
+                "gendergap_18",
+                "fem_players",
+                "GDP",
+                "population"
+              )
+            )
+          ),
           mainPanel(
-          plotOutput("model1")
-        ))
+            plotOutput("model1")
+          )
+        )
       )
-      ),
-      tabPanel(
-        "About",
-        h3("About this project"),
-        h5("In March 2019, the 28 members of the United States Women's National 
+    ),
+    tabPanel(
+      "About",
+      h3("About this project"),
+      h5("In March 2019, the 28 members of the United States Women's National 
                Soccer Team (USWNT) filed a class-actionlawsuit against their employer,
                U.S. Soccer. The lawsuit accuses U.S. soccer of violating the Equal 
                Pay Act and Title VII of thet Civil RIghts Act of 1964 by consistently 
@@ -239,170 +249,411 @@ ui <- fluidPage(
                way that allows for useful comparisons. It will also go beyond the 
                USWNT to examine how professional female soccer players are compensated 
                throughout the world."),
-        h3("Data"),
-        h5("The data for this project is drawn from the Major League Soccer Player's
+      h3("Data"),
+      h5("The data for this project is drawn from the Major League Soccer Player's
           Association (MLSPA), US Soccer's annual reports, and jouralistic articles 
           from the Guardian, the Equalizer, the New York Times, and the Washington 
           Post.The National Womens'Soccer League does not collect information on 
           player salaries and was unable to provide any when I contacted them. To
           date, FIFA has not responded to a request to use their data on women in 
           football."),
-        h3("About Me"),
-        h5("I am a first year Master's Candidate in Russian, Eastern European, and
+      h3("About Me"),
+      h5("I am a first year Master's Candidate in Russian, Eastern European, and
          Central Asian Studies at Harvard University. I'm also a long-time amature
          soccer player and avid fan of women's soccer.")
-      )
     )
   )
+)
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
   output$plot1 <- renderPlot({
     rev <- rev_exp %>%
+
+      # first, I'm just going to work with revenue data
+
       select(fiscal_year, womens_revenue, mens_revenue) %>%
+
+      # select variables of interest
+
       pivot_longer(
         cols = ends_with("revenue"),
         names_to = "Team",
         values_to = "Revenue"
       ) %>%
+
+      # pivot the data so that the USMNT/USWNT data ends up in one column
+      # this will allow me to facet wrap my graph by men and women later
+
       mutate(fiscal_year = if_else(
-        fiscal_year == "2019 (projected)", 2019, as.double(fiscal_year)
+        fiscal_year == "2019 (projected)", 2019, suppressWarnings(as.double((fiscal_year)))
       )) %>%
+
+      # mutate to remove (projected) so that I can make fiscal_year a
+      # double column. Use suppressWarnings to get rid of the NA introduced by coercion
+      # warning (I couldn't figure out how to do it any other way)
+
       mutate(Team = if_else(Team == "womens_revenue", "USWNT", "USMNT"))
-    
+
+    # mutate to change womens_revenue and mens_revenue to USWNT and USMNT,
+    # which is how I want it to show up in the graph
+
     exp <- rev_exp %>%
+
+      # now work with expense data
+
       select(fiscal_year, womens_expenses, mens_expenses) %>%
+
+      # select variables of interest
+
       pivot_longer(
         cols = ends_with("expenses"),
         names_to = "Team",
         values_to = "Expenses"
       ) %>%
+
+      # pivot the data so that the USMNT/USWNT data ends up in one column
+      # this will allow me to facet wrap my graph by men and women later
+
       mutate(fiscal_year = if_else(
-        fiscal_year == "2019 (projected)", 2019, as.double(fiscal_year)
+        fiscal_year == "2019 (projected)", 2019, suppressWarnings(as.double(fiscal_year))
       )) %>%
+
+      # make 2019 (projected) into a numeric value, as well as whole column. Use
+      # suppress warning for same purposes as above.
+
       mutate(Team = if_else(Team == "womens_expenses", "USWNT", "USMNT"))
-    
+
+    # mutate mens_expenses and womens_expenses to USWNT and USMNT
+
     rev_exp_formatted <- exp %>%
       left_join(rev, by = c("fiscal_year", "Team")) %>%
+
+      # rejoin the data
+
       mutate(Expenses = if_else(is.na(Expenses), 0, Expenses)) %>%
+
+      # change NAs to 0 revenue so that I can collapse the rows. The NAs were
+      # introduced because I have separate rows for revenue and expense
+
       mutate(Revenue = if_else(is.na(Revenue), 0, Revenue)) %>%
+
+      # change NAs to 0 in revenue so that I can add and subtract data below
+
       mutate(Net = Revenue - Expenses) %>%
+
+      # make a net column by subtracting expenses from revenue
+
       pivot_longer(
         cols = Expenses:Net,
         names_to = "Type",
         values_to = "Amount"
       )
-    
-    rev_exp_formatted$Type <- factor(rev_exp_formatted$Type , levels = c("Revenue", "Expenses", "Net"))
-    
+
+    # pivot longer so that I will be able to filter by Revenue, Expenses and Net.
+    # I'm not sure if this is by design, but this is one of the few ways I was able
+    # to get reactive variables to work in shiny
+
+    rev_exp_formatted$Type <- factor(rev_exp_formatted$Type, levels = c("Revenue", "Expenses", "Net"))
+
+    # assign levels to Revenue, Expenses and Net so that they display with Net last
+    # instead of in alphabetical order
+
     rev_exp_formatted %>%
+      # make a ggplot
+
       filter(Type %in% c(input$rev_exp_net)) %>%
+
+      # filter for interactive variables. I use include instead of equals because
+      # I allow the user to select multiple inputs here
+
       ggplot(aes(x = fiscal_year, y = Amount, fill = Type)) +
+
+      # fiscal_year goes on x axis, amount on y axis, color by type
+
       geom_col(position = "dodge") +
-      scale_fill_manual(values = c("Expenses" = "coral1", "Revenue" = "lightgreen","Net" = "black")) +
+
+      # set columns to dodge so that they display side by side instead of stacked
+
+      scale_fill_manual(values = c(
+        "Expenses" = "brown1", "Revenue" = "forestgreen", "Net" = "black"
+      )) +
+
+      # set the colors manually
+
       facet_wrap(~Team) +
+
+      # facet wrap by team
+
       labs(
         x = "Fiscal Year",
         y = "Amount in U.S. dollars",
         title = "Annual Team Expenses and Revenue",
         caption = "Data from U.S. soccer annual reports"
       ) +
+
+      # relabel x and y, add title and caption
+
       theme_minimal() +
+
+      # set theme to minimal
+
       theme(
         plot.title = element_text(hjust = 0.5)
       )
-    
+
+    # center title
   })
-  
+
   output$plot9 <- renderPlot({
-    
-    mws2 <- mws %>% filter(league == "EPL" | league == "Bundesliga" | league == "Ligue 1" | league == "La Liga" | league == "Serie A" | league == "MLS" | league == "CSL" | league == "Scot Prem" | league == "J.League") %>% 
-      mutate(Country = case_when(league == "EPL" ~ "England", 
-                                 league == "Bundesliga" ~ "Germany", 
-                                 league == "Serie A" ~ "Italy", 
-                                 league == "Ligue 1" ~ "France", 
-                                 league == "La Liga" ~ "Spain", 
-                                 league == "MLS" ~ "USA", 
-                                 league == "CSL" ~ "China", 
-                                 league == "Scot Prem" ~ "Scotland", 
-                                 league == "J.League" ~ "Japan", 
-                                 TRUE ~ "NA"
-      )) %>% 
-      select(league, avg_annual_pay_2, Country) %>% 
-      mutate(avg_annual_pay_2 = if_else(avg_annual_pay_2 == "$6,739,250($129,601)", "$6,739,250 ($129,601)", avg_annual_pay_2)) %>% 
-      separate(avg_annual_pay_2, into = c("annual_pay"), sep = " ") %>% 
+    mws2 <- mws %>% filter(league == "EPL" | league == "Bundesliga" | league == "Ligue 1" | league == "La Liga" | league == "Serie A" | league == "MLS" | league == "CSL" | league == "Scot Prem" | league == "J.League") %>%
+
+      # filter for soccer leagues
+
+      mutate(Country = case_when(
+        league == "EPL" ~ "England",
+        league == "Bundesliga" ~ "Germany",
+        league == "Serie A" ~ "Italy",
+        league == "Ligue 1" ~ "France",
+        league == "La Liga" ~ "Spain",
+        league == "MLS" ~ "USA",
+        league == "CSL" ~ "China",
+        league == "Scot Prem" ~ "Scotland",
+        league == "J.League" ~ "Japan",
+        TRUE ~ "NA"
+      )) %>%
+
+      # mutate soccer league names to be the name of the country the league plays in
+
+      select(league, avg_annual_pay_2, Country) %>%
+
+      # select variables of interest
+
+      mutate(avg_annual_pay_2 = if_else(avg_annual_pay_2 == "$6,739,250($129,601)", "$6,739,250 ($129,601)", avg_annual_pay_2)) %>%
+
+      # mutate to fix the one column where there isn't a space between the annual and weekly
+      # pay
+
+      separate(avg_annual_pay_2, into = c("annual_pay"), sep = " ", extra = "drop") %>%
+
+      # separate out annual and weekly pay and drop weekly pay
+
       mutate(annual_pay = parse_number(annual_pay))
-    
+
+    # parse the number from annual pay so that I can work with it as a number
+
     country_number <- mws2 %>% count(Country)
-    
-    mws3 <- country_number %>% right_join(mws2, by = "Country") %>% 
-      group_by(Country) %>% 
-      mutate(avg_annual_pay_country = sum(annual_pay)/n) %>% 
-      group_by(Country, avg_annual_pay_country) %>% 
+
+    # use count to collapse country names to one row per country to get the number
+    # of times each country appears in the tibble. I will used this to get the average
+    # salary per country since some countries have multiple leagues/teams listed in this
+    # dataset
+
+    mws3 <- country_number %>%
+      right_join(mws2, by = "Country") %>%
+
+      # join tibble listing country and number of times country appears to the data
+
+      group_by(Country) %>%
+      mutate(avg_annual_pay_country = sum(annual_pay) / n) %>%
+
+      # calculate average annual pay by dividing the sum per country by number of times
+      # the country appears
+
+      group_by(Country, avg_annual_pay_country) %>%
       count()
-    
-    missing_countries <- mws_18 %>% select(country, avg_basic_annual_1) %>% 
-      drop_na() %>% 
+
+    # use count to collapse the data
+
+    missing_countries <- mws_18 %>% select(country, avg_basic_annual_1) %>%
+
+      # make a missing countries table, which is where I will store the 2018 data
+      # for the countries I did not have 2017 data for. I made the choice to bring in
+      # 2018 data as a proxy for 2017 data because withour these countries included,
+      # my sample was very small. I note this decision in the user interface of my app.
+
+      drop_na() %>%
+
+      # get rid of pesky NAs
+
       filter(country %in% c("AUSTRALIA ASIA", "MEXICO", "SWEDEN EUROPE")) %>%
-      mutate(Country = country) %>% 
-      mutate(avg_annual_pay_country = parse_number(avg_basic_annual_1)) %>% 
+
+      # filter for my missing countries
+
+      mutate(Country = country) %>%
+      # mutate so that country is capitalzied, which will allow me to seamlessly
+      # join this tibble with the other using bind_rows
+
+      mutate(avg_annual_pay_country = parse_number(avg_basic_annual_1)) %>%
+
+      # make a new column with the same name as in the other tibble
+
       select(Country, avg_annual_pay_country)
-    
-    
-    mws4 <- mws3 %>% bind_rows(missing_countries) %>% 
-      mutate(country_clean = case_when(Country == "AUSTRALIA ASIA" ~ "Australia", 
-                                       Country == "SWEDEN EUROPE" ~ "Sweden", 
-                                       Country == "MEXICO" ~ "Mexico", 
-                                       TRUE ~ Country)) %>% 
+
+    # select variables of interest
+
+    mws4 <- mws3 %>% bind_rows(missing_countries) %>%
+
+      # bind the rows together
+
+      mutate(country_clean = case_when(
+        Country == "AUSTRALIA ASIA" ~ "Australia",
+        Country == "SWEDEN EUROPE" ~ "Sweden",
+        Country == "MEXICO" ~ "Mexico",
+        TRUE ~ Country
+      )) %>%
+
+      # rename variables where they looked weird
+
       mutate(Gender = "Men")
-    
-    wws2 <- wws %>% filter(sport == "Football") %>% select(u_s, country) %>% 
+
+    # make a gender column
+
+    wws2 <- wws %>% filter(sport == "Football") %>%
+
+      # filter women's data for the right sport
+
+      select(u_s, country) %>%
+
+      # select salary in usd, country
+
       mutate(avg_salary = parse_number(u_s)) %>%
+
+      # pull out the number from u_s so that I can use it as a number
+
       mutate(Gender = "Women")
-    
-    graph_data <- wws2 %>% full_join(mws4, by = c("avg_salary" = "avg_annual_pay_country", "country" = "country_clean", "Gender" = "Gender")) %>% 
-      select(avg_salary, country, Gender) %>% 
+
+    # add a gender column
+
+    graph_data <- wws2 %>%
+      full_join(mws4, by = c("avg_salary" = "avg_annual_pay_country", "country" = "country_clean", "Gender" = "Gender")) %>%
+
+      # join women's and men's data
+
+      select(avg_salary, country, Gender) %>%
+
+      # select variables of interest
+
       filter(!country %in% c("Scotland", "Spain", "Italy", "Japan"))
-    
-    graph_data %>% 
+
+    # filter out countries for which I only have data for thre women's or men's teams
+
+    graph_data %>%
+
+      # make a graph
+
       filter(Gender %in% c(input$gender)) %>%
-    ggplot(aes(x = country, y = avg_salary, fill = Gender)) +
+
+      # filter by reactive variable
+
+      ggplot(aes(x = country, y = avg_salary, fill = Gender)) +
+
+      # x axis is country, y is salary, fill is gender
+
       geom_col(position = "dodge") +
-      scale_fill_manual(values = c("Men" = "purple4", "Women" = "red")) + 
-      labs(x = "Country", 
-           y = "Average Annual Salary", 
-           title = "Average Annual Salary in Selected Professional Soccer Leagues, 2017", 
-           caption = "Data from Global Sports Salary Survey 2017 and 2018.") +
+
+      # set position to dodge so that columns display side by side
+
+      scale_fill_manual(values = c("Men" = "purple4", "Women" = "red")) +
+
+      # set colors manually
+
+      labs(
+        x = "Country",
+        y = "Average Annual Salary",
+        title = "Average Annual Salary in Selected Professional Soccer Leagues, 2017",
+        caption = "Data from Global Sports Salary Survey 2017 and 2018."
+      ) +
+
+      # relabel x and y axes, add a caption and title
+
       theme_minimal() +
-      theme(plot.title = element_text(hjust =0.5))
-    
+
+      # set theme
+
+      theme(plot.title = element_text(hjust = 0.5))
+
+    # center title
   })
-  
+
   output$model1 <- renderPlot({
-    
-    model_data2 <- model_data %>% mutate(gendergap_18 = as.numeric(global_gender_gap_ranking_2018, na.rm = TRUE))%>% 
-      mutate(fifa_19 = as.numeric(fifa_wf_ranking_2019, na.rm = TRUE)) %>% 
-      mutate(fem_players = as.numeric(female_players_playing_organized_football, na.rm = TRUE)) %>%
-      select(x1, population, gendergap_18, fifa_19, fem_players)
-    
+    model_data2 <- model_data %>%
+      mutate(gendergap_18 = suppressWarnings(as.numeric((global_gender_gap_ranking_2018)))) %>%
+
+      # mutate fifa data to change the name of global_gender_gap_ranking_2018 to something
+      # easier to use and also to make it numeric. I used suppress warnings here to quiet
+      # the NA introduced by coercion warning
+
+      mutate(fifa_19 = suppressWarnings(as.numeric((fifa_wf_ranking_2019)))) %>%
+
+      # make fifa_19, same logic as above
+
+      mutate(fem_players = suppressWarnings(
+        as.numeric((female_players_playing_organized_football))
+      )) %>%
+
+      # make fem_players, same logic as above
+
+      select(x1, population, gendergap_18, fifa_19, fem_players) %>%
+
+      # select variables of interest
+
+      drop_na(gendergap_18)
+
+    # drop NAs in gendergap_18. I didn't drop all NAs because it decimated the dataset,
+    # but wanted to drop NAs from the variable that I will join by
+
     gdp_clean <- gdp_data %>% select(country_name, indicator_name, x2018)
-    
-    gender_index_clean <- gender_index %>% select(country_name, indicator, subindicator_type, x2018) %>% filter(indicator == "Overall Global Gender Gap Index" & subindicator_type == "Rank")
-    
-    merge_1 <- gdp_clean %>% left_join(gender_index_clean, by = "country_name") %>%
-      mutate(GDP = x2018.x) %>% 
-      mutate(gender_rank = x2018.y) %>% 
+
+    # select variables of interst in gdp data
+
+
+    gender_index_clean <- gender_index %>%
+      select(country_name, indicator, subindicator_type, x2018) %>%
+      filter(indicator == "Overall Global Gender Gap Index" & subindicator_type == "Rank")
+
+    # select columns and rows of interest from global gender gap data
+
+    merge_1 <- gdp_clean %>%
+      left_join(gender_index_clean, by = "country_name") %>%
+      mutate(GDP = x2018.x) %>%
+      mutate(gender_rank = x2018.y) %>%
       select(country_name, GDP, gender_rank)
-    
-    merge_2 <- model_data2 %>% left_join(merge_1, by = c("gendergap_18" = "gender_rank"))
-    
-    merge_2 %>% select(fifa_19, country_name, input$model_input) %>% 
-      ggplot(aes(x = input$model_input, y = fifa_19)) + 
+
+    # join gdp and gender gap data, mutate to give year columns more intuitive names
+
+    merge_2 <- model_data2 %>%
+      left_join(merge_1, by = c("gendergap_18" = "gender_rank")) %>%
+
+      # join merged data above with fifa data
+
+      mutate(GDP = log10(GDP)) %>%
+      mutate(population = log10(population)) %>%
+
+      # take log of GDP and population so the graph won't look so crazy
+
+      select(fifa_19, population, gendergap_18, fem_players, GDP) %>%
+
+      # select variables of interest
+
+      pivot_longer(cols = population:GDP, names_to = "Type2", values_to = "value")
+
+    # pivot longer so that I will be able to filter by type in the next step
+
+    merge_2 %>%
+      filter(Type2 == input$model_input) %>%
+
+      # filter by interactive variable
+
+      ggplot(aes(x = value, y = fifa_19)) +
+
+      # make graph
+
       geom_point() +
       geom_smooth(formula = y ~ x, method = "lm")
-    
+
+    # add scatterplot and regression layers
   })
-  
 }
 
 # Run the application
