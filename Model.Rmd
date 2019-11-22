@@ -1,0 +1,52 @@
+---
+title: "Model"
+author: "Bernadette Stadler"
+date: "11/22/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(tidymodels)
+```
+
+```{r}
+model_data <- read_csv("raw-data/womens-football-2019-clean.csv", 
+                  col_types = cols(
+                    X1 = col_character(),
+                    Population = col_number(),
+                    `Global Gender Gap Ranking 2018` = col_character(),
+                    `FIFA WF Ranking 2019` = col_character(),
+                    `Female players playing organized football` = col_character(),
+                    `licesned coaches` = col_character(),
+                    `licensed referees` = col_character(),
+                    `Women's soccer strategy?` = col_character(),
+                    `Mixed-gender football?` = col_character()
+)) %>% clean_names() 
+
+model_data2 <- model_data %>% mutate(gendergap_18 = as.numeric(global_gender_gap_ranking_2018))%>% 
+  mutate(fifa_19 = as.numeric(fifa_wf_ranking_2019)) %>% 
+  select(x1, population, gendergap_18, fifa_19) %>% drop_na()
+
+```
+
+```{r}
+ggplot(model_data2, aes(x = gendergap_18, y = fifa_19)) + 
+  geom_point() +
+  geom_smooth(formula = y ~ x,method = "lm")
+
+model <- lm(fifa_19 ~ gendergap_18, data = model_data2)
+
+tidy(model)
+
+glance(model)
+
+model2 <- lm(fifa_19 ~ population + gendergap_18, data = model_data2)
+
+glance(model2)
+
+metrics(model, truth = fifa_19)
+
+```
+
