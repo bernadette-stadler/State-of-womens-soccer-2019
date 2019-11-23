@@ -12,6 +12,7 @@ library(janitor)
 library(gt)
 library(scales)
 library(webshot)
+library(fs)
 library(tidyverse)
 ```
 
@@ -148,7 +149,7 @@ total <- tibble("stage" = "Total", "women" = sum_women, "men" = sum_men, "Differ
 
 # create the tibble. I will bind it to the main tibble later
 
-world_cup_bonsuses_tab <- bonuses %>%
+world_cup_bonuses_tab <- bonuses %>%
   select(stage, women, men) %>%
 
   # select variables of interest
