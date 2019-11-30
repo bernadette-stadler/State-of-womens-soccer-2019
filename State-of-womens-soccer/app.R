@@ -21,11 +21,8 @@ library(scales)
 library(gt)
 library(tidyverse)
 
-# Define UI for application
-
-ui <- fluidPage(
   rev_exp <- read_excel("raw-data/Revenue and expense data.xlsx") %>%
-    clean_names(),
+    clean_names()
 
   # read in U.S. soccer revenue and expenses dataset
 
@@ -36,7 +33,7 @@ ui <- fluidPage(
     Sport = col_character(),
     Teams = col_double(),
     Players = col_double()
-  )) %>% clean_names(),
+  )) %>% clean_names()
 
   # read in womens salaries data
 
@@ -47,7 +44,7 @@ ui <- fluidPage(
   ))) %>%
     drop_na() %>%
     filter(!LEAGUE == "LEAGUE") %>%
-    clean_names(),
+    clean_names()
 
   # read in mens salaries data for 2017.Use suppress warnings because I got a warning
   # saying that a missing column name was filled in with X4 that I couldn't get to
@@ -58,11 +55,11 @@ ui <- fluidPage(
     COUNTRY = col_character(),
     CONTINENT = col_character(),
     X4 = col_character()
-  ))) %>% clean_names(),
+  ))) %>% clean_names()
 
   # read in mens salaries data for 2018.Use suppress warnings for same reason as above
 
-  bonuses <- read_excel("raw-data/World cup bonuses.xlsx") %>% clean_names(),
+  bonuses <- read_excel("raw-data/World cup bonuses.xlsx") %>% clean_names()
 
   # read in bonuses data (manually compiled from Guardian article)
 
@@ -78,7 +75,7 @@ ui <- fluidPage(
       `Women's soccer strategy?` = col_character(),
       `Mixed-gender football?` = col_character()
     )
-  ) %>% clean_names(),
+  ) %>% clean_names()
   
   # read in fifa data 
 
@@ -93,7 +90,7 @@ ui <- fluidPage(
       `2019` = col_logical(),
       X65 = col_logical()
     )
-  ) %>% clean_names(),
+  ) %>% clean_names()
   
   # read in world bank data 
 
@@ -117,9 +114,11 @@ ui <- fluidPage(
       `2016` = col_double(),
       `2018` = col_double()
     )
-  ) %>% clean_names(),
+  ) %>% clean_names()
   
   # read in gender index data 
+  
+  ui <- fluidPage(
 
   navbarPage(
     "Equal Work, Equal Pay? Women's Soccer in 2019",
@@ -280,21 +279,33 @@ ui <- fluidPage(
           
           # title it 
           
+          h3("Is gender equality correlated with performance?"), 
+          h5("If paying male and female soccer players equally increases the performance 
+             of women's teams, that fact should incentivize national soccer governing bodies
+             to do so. However the real picture is more complicated, with gender equality 
+             (which I am using as a proxy for equal pay) only losely correlated with better 
+             performance. GDP is much more strongly correlated with performance, suggesting
+             it is not equality of investment between male and female teams that increases 
+             performance, but level of investment (as richer countries are able to invest
+             more in their soccer teams)."),
+          
           sidebarPanel(
             
             # add a sidebar 
             
             selectInput("model_input", "Independent Variable",
               choices = c(
-                "gendergap_18",
-                "fem_players",
+                "Gender Gap Rank",
                 "GDP",
-                "population"
-              )
+                "Population"
+              ) 
               
               # add a dropdown menu. I need to update the text that displays to make it 
               # look nicer before I turn in the final project. 
-            )
+            ), 
+            h5("Note: Population and GDP are on a log scale. For FIFA Rank and 
+                 Gender Gap Rank, lower numbers indicate better performance, with 1 
+               as the best possible score.")
           ),
           mainPanel(
             
@@ -349,6 +360,7 @@ ui <- fluidPage(
 )
 
 # Define server logic required to draw a histogram
+
 server <- function(input, output) {
   output$plot1 <- renderPlot({
     rev <- rev_exp %>%
@@ -488,7 +500,7 @@ server <- function(input, output) {
     # center title
   })
 
-  output$plot9 <- renderPlot({
+  output$plot2 <- renderPlot({
     mws2 <- mws %>% filter(league == "EPL" | league == "Bundesliga" | league == "Ligue 1" | league == "La Liga" | league == "Serie A" | league == "MLS" | league == "CSL" | league == "Scot Prem" | league == "J.League") %>%
 
       # filter for soccer leagues
@@ -711,15 +723,16 @@ server <- function(input, output) {
       # join merged data above with fifa data
 
       mutate(GDP = log10(GDP)) %>%
-      mutate(population = log10(population)) %>%
+      mutate(Population = log10(population)) %>%
+      mutate("Gender Gap Rank" = gendergap_18) %>%
 
       # take log of GDP and population so the graph won't look so crazy
 
-      select(fifa_19, population, gendergap_18, fem_players, GDP) %>%
+      select(fifa_19, Population, "Gender Gap Rank", GDP) %>%
 
       # select variables of interest
 
-      pivot_longer(cols = population:GDP, names_to = "Type2", values_to = "value")
+      pivot_longer(cols = Population:GDP, names_to = "Type2", values_to = "value")
 
     # pivot longer so that I will be able to filter by type in the next step
 
@@ -733,7 +746,11 @@ server <- function(input, output) {
       # make graph
 
       geom_point() +
-      geom_smooth(formula = y ~ x, method = "lm")
+      geom_smooth(formula = y ~ x, method = "lm") +
+      labs(
+        y = "FIFA Rank", 
+        x = input$model_input
+      )
 
     # add scatterplot and regression layers
   })
