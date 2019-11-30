@@ -1,0 +1,36 @@
+---
+title: "Regular Season Salaries"
+author: "Bernadette Stadler"
+date: "11/30/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(readxl)
+library(janitor)
+library(tidyverse)
+```
+
+```{r read in data}
+
+reg_season_salary <- read_excel("raw-data/reg season salaries.xlsx") %>% clean_names()
+```
+
+```{r manipulate data}
+
+graph_data <- reg_season_salary %>% 
+  pivot_longer(cols = women:men, names_to = "team", values_to = "salary")
+
+```
+
+
+```{r make graph}
+ggplot(graph_data) +
+  geom_col(aes(x = games_won, y = salary, fill = team), position = "dodge") +
+  scale_fill_manual(values = c("women" = "red", "men" = "purple4")) +
+  coord_flip() +
+  labs(y = "Money Earned")
+
+```
+
