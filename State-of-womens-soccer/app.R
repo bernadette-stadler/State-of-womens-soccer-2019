@@ -228,6 +228,41 @@ library(tidyverse)
 
             # display the plot (created in the server)
           )
+        ), 
+        tabPanel("National League Salaries", 
+        h3("Comparing Salaries in the NWSL and MLS"),
+        
+        # title for the second graph on the page 
+        
+        column(
+          4,
+          
+          # split this section up using column because there is no sidebar 
+          
+          "The American professional soccer leagues are Major League Soccer (MLS) 
+          and the National Women's Soccer League (NWSL). Many USMNT hopefuls 
+          play in the MLS, while it USWNT players are practically required 
+          to play in the NWSL. This graph shows the range of possible salaries 
+          in the NWSL and MLS for 2013-2018. The discrepancy in national league
+          salaries contributes to the discrepancy in the amount of money that 
+          USWNT and USMNT athletes can expect to make, as USMNT make higher 
+          national league salaries in addition to their higher earnings for 
+          games played on the USMNT."
+          
+          
+          # add some more explainer text 
+          
+        ),
+        column(
+          8,
+          
+          # add in the other side of the column 
+          
+          HTML('<center> <img src = "plot5.png"> </center>')
+          
+          # add the image of my plot (kinda arbitrarily named plot five) that I made
+          # saved, and copied into the app in the NWSL-MLS Salaries Rmd file. 
+        )
         )
       )
     ),
@@ -279,35 +314,6 @@ library(tidyverse)
             plotOutput("plot2")
             
             # put my plot on my main panel 
-          ),
-          h3("USA"),
-          
-          # title for the second graph on the page 
-          
-          column(
-            4,
-            
-            # split this section up using column because there is no sidebar 
-            
-            "The American professional soccer leagues are Major League Soccer (MLS) 
-                  and the National Women's Soccer League (NWSL). Many USMNT hopefuls 
-                  play in the MLS, while it USWNT players are practically required 
-                  to play in the NWSL. This graph shows the range of possible salaries 
-                  in the NWSL and MLS for 2013-2018."
-            
-            
-            # add some more explainer text 
-            
-          ),
-          column(
-            8,
-            
-            # add in the other side of the column 
-            
-            img(src = "plot5.png")
-            
-            # add the image of my plot (kinda arbitrarily named plot five) that I made
-            # saved, and copied into the app in the NWSL-MLS Salaries Rmd file. 
           )
         ),
         tabPanel(
