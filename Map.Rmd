@@ -1,0 +1,54 @@
+---
+title: "Map"
+author: "Bernadette Stadler"
+date: "11/30/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(maps)
+library(countrycode)
+library(readxl)
+library(sf)
+library(tidyverse)
+```
+
+```{r read in data}
+salary_data <- read_excel("raw-data/Salaries worldwide.xlsx", col_names = c("salary", "country")) %>% clean_names()
+
+untar("ne_50m_admin_0_countries.zip")
+
+map3 <- st_read("ne_50m_admin_0_countries.shp") %>% 
+  mutate(NAME_EN = as.character(NAME_EN))
+
+```
+
+```{r manipulate data}
+
+data_map <- salary_data %>% 
+  mutate(salary = parse_number(salary)) %>%
+  group_by(country) %>% 
+  mutate(sum_salary_country = sum(salary)) %>% 
+  ungroup() %>% 
+  group_by(country, sum_salary_country) %>% 
+  count(country) %>% 
+  mutate(avg_salary = sum_salary_country/n) %>% 
+  ungroup %>%
+  select(-n, -sum_salary_country) %>% 
+  mutate(country = if_else(country == "United States", "United States of America", country))
+
+map4 <- map3 %>% left_join(data_map, by = c("NAME_EN" = "country")) 
+
+```
+
+```{r} 
+ggplot() +
+  geom_sf(data = map4, aes(fill = avg_salary)) + 
+  scale_fill_gradient(na.value = "white", low = "tomato", high = "red") +
+  labs(title = "Self-reported World Cup Salaries", 
+       caption = "Data from 'We Asked, They Answered: 108 Women's World Cup Players on Their Jobs, Money, and 
+       Sacrificing Everything'(New York Times Article by Allison McCann).") +
+  theme(plot.caption = element_text(hjust = 0.5))
+```
+
