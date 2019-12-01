@@ -316,6 +316,20 @@ library(tidyverse)
             # put my plot on my main panel 
           )
         ),
+        tabPanel("World Cup Players' Salaries",
+                 h3("How much are female World Cup athletes paid around the world?"), 
+                 column(4,
+                 h5("This data was taken from a New York Times article by Allison 
+                    McCann, who conducted a survey of 108 female world cup athletes. 
+                    Numerous countries are not represented; however the map below gives 
+                    a sense of the differences in salaries between female World Cup
+                    players. This map shows average values, but the minimum reported by
+                    players in McCann's survey was $0 (Jamaica) and the maximum was 
+                    $350,000 (USA).")), 
+                 column(8, 
+                 HTML('<center><img src = "map.png"></center>')) 
+          
+        ), 
         tabPanel(
           
           # second tab in this tabset panel! 
