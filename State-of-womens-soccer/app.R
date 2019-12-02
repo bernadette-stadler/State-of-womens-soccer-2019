@@ -1,15 +1,4 @@
 
-# Note: There are several things that I need to fix before I submit this as my final
-# project. Specifically, I need to figure out how to quiet some of the warnings that 
-# are popping up when I run the app. I went through all the Rmd files and got rid 
-# of as many warnings as I could, but there seem to still be some warnings popping 
-# up when I load the data into the app. I also need to go through and make sure all of 
-# my syntax is 100% correct and that all of my graphs have titles and are well labeled. 
-# Finally, there is one more graph that I need to add in the first tab of the app.
-# However, all of the bare bones of my app are here and I'm pretty happy with it as a
-# draft. 
-
-
 library(shiny)
 library(readr)
 library(ggplot2)
@@ -118,7 +107,7 @@ library(tidyverse)
   
   # read in gender index data 
   
-  read_excel("raw-data/reg season salaries.xlsx") %>% clean_names()
+  reg_season_salary <- read_excel("raw-data/reg season salaries.xlsx") %>% clean_names()
   
   # read in regular season salaries data 
   
@@ -188,8 +177,10 @@ library(tidyverse)
           h5("The different bonuses made at each stage add up to quite a difference. 
              This chart shows the cumulative amount that a USWNT or USMNT player would
              walk away with if their team exited the tournament at each respective stage.")),
-          column(9,
-          HTML('<center><img src = "world_cup_bonuses.png"></center>'))
+          column(9, 
+            HTML('<center><img src = "world_cup_bonuses.png"></center>'))
+                  
+          
 
           # insert a graph showing the cumulative amount that each team
           # makes per stage in the world cup. I made the graph in a separate
@@ -425,17 +416,51 @@ server <- function(input, output) {
     
     reg_season_salary %>% 
       pivot_longer(cols = women:men, names_to = "team", values_to = "salary") %>% 
+      
+      # pivot data so that women or men appear as values in column "team" so that I 
+      # can facet wrap by team later 
+      
+      mutate(team = if_else(team == "women", "Women", "Men")) %>%
+      
+      # change "men" and "women" to "Men" and "Women" so that they will display 
+      # nicely in the legend 
+      
       filter(games_won == input$games_won) %>% 
+      
+      # filter for number of games user selects 
+      
       ggplot() +
       geom_col(aes(x = team, y = salary, fill = team), position = "dodge") +
-      scale_fill_manual(values = c("women" = "red", "men" = "purple4")) +
+      
+      # make a ggplot! Set position to dodge so the columns appear next to
+      # eachother 
+      
+      scale_fill_manual(values = c("Women" = "red", "Men" = "purple4")) +
+      
+      # manually color the bars, using same color scheme as rest of men/women 
+      # graphs 
+      
       coord_flip() +
+      
+      # flip coordinates because a two-column graph looks better going 
+      # horizontally
+      
+      theme_minimal() +
+      
+      # theme of my app! 
+      
       theme(axis.text.y = element_blank()) + 
+      
+      # remove y axis text because fill color already identifies each bar 
+      
       labs(title = "Money earned per games won", 
            subtitle = "Assuming each team plays 20 games", 
            y = "Money Earned", 
            x = "", 
-           caption = "Data from USWNT lawsuit")
+           caption = "Data from USWNT lawsuit", 
+           fill = "Team")
+    
+    # add title, subtitle caption; rename x and y axes an legend title 
   
   })
   
