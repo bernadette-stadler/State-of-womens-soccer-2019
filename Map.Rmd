@@ -12,6 +12,7 @@ library(countrycode)
 library(readxl)
 library(sf)
 library(fs)
+library(janitor)
 library(tidyverse)
 ```
 
@@ -21,7 +22,7 @@ salary_data <- read_excel("raw-data/Salaries worldwide.xlsx", col_names = c("sal
 
 # read in salary data, naming the columns appropriately 
 
-untar("ne_50m_admin_0_countries.zip")
+untar("raw-data/ne_50m_admin_0_countries.zip")
 
 # untar zip file containing world map shape file 
 
@@ -45,6 +46,8 @@ file_delete("ne_50m_admin_0_countries.dbf")
 file_delete("ne_50m_admin_0_countries.prj")
 
 file_delete("ne_50m_admin_0_countries.shx")
+
+file_delete("ne_50m_admin_0_countries.shp")
 
 # delete unnecessary files 
 
