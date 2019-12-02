@@ -16,9 +16,23 @@ library(tidyverse)
 ```
 
 ```{r read in data}
+
 salary_data <- read_excel("raw-data/Salaries worldwide.xlsx", col_names = c("salary", "country")) %>% clean_names()
 
+# read in salary data, naming the columns appropriately 
+
 untar("ne_50m_admin_0_countries.zip")
+
+# untar zip file containing world map shape file 
+
+map3 <- st_read("ne_50m_admin_0_countries.shp") %>%
+  mutate(NAME_EN = as.character(NAME_EN))
+
+# save shape file as a r object. Change the column NAME_EN to character. 
+# This is because I will be joining this data with the salary data later, 
+# and the column I will be joinig it with is class character. Making this 
+# change clears up some warnings, and this seemed like the best place 
+# to do it. 
 
 file_delete("ne_50m_admin_0_countries.README.html")
 
@@ -32,8 +46,7 @@ file_delete("ne_50m_admin_0_countries.prj")
 
 file_delete("ne_50m_admin_0_countries.shx")
 
-map3 <- st_read("ne_50m_admin_0_countries.shp") %>% 
-  mutate(NAME_EN = as.character(NAME_EN))
+# delete unnecessary files 
 
 ```
 
@@ -41,34 +54,87 @@ map3 <- st_read("ne_50m_admin_0_countries.shp") %>%
 
 data_map <- salary_data %>% 
   mutate(salary = parse_number(salary)) %>%
+  
+  # convert salary to a number so I can manipulate it below. 
+  # I will ultimatley be creating a column for average salary
+  # for each country. 
+  
   group_by(country) %>% 
   mutate(sum_salary_country = sum(salary)) %>% 
   ungroup() %>% 
+  
+  # create a column that sums the salaries for each country. 
+  # To do this, I first grouped by country before using mutate.
+  # Then I ungrouped the data because I have to group it 
+  # differently for the next step
+  
   group_by(country, sum_salary_country) %>% 
   count(country) %>% 
   mutate(avg_salary = sum_salary_country/n) %>% 
-  ungroup %>%
+  
+  # Group by country and sum_salary_country. Grouping by 
+  # sum_salary_country is important because that keeps the
+  # column in the data. Use count to find the number of times
+  # each country appears in the data. Then make a new column, 
+  # avg_salary that holds the average salary per country (found 
+  # by dividing sum_salary_country by the number of times (n)
+  # each country appeared in the data 
+
   select(-n, -sum_salary_country) %>% 
+  
+  # drop unnecessary columns 
+  
   mutate(country = if_else(country == "United States", "United States of America", country))
+
+  # update country column so that the label for the United States matches the shape 
+  # file data 
 
 map4 <- map3 %>% left_join(data_map, by = c("NAME_EN" = "country")) 
 
+  # join salary data with shape file data by country. This will make it super easy 
+  # to shade countries according to average salray in the next step. 
+
 ```
 
-```{r} 
+```{r make map} 
 map <- ggplot() +
   geom_sf(data = map4, aes(fill = avg_salary)) + 
+  
+  # make a ggplot, using geom_sf to draw the world map and setting fill to 
+  # average salary 
+  
   scale_fill_gradient(na.value = "white", low = "tomato", high = "red") +
+  
+  # change the NA countries to white -- this just looks better. Set low to 
+  # tomato and high to red because I've been using red throughout this project 
+  # to represent women's teams. Tomato and Red make for a nice gradient. I did 
+  # try using darker and lighter colors to increase contrast, but given the 
+  # extreme difference between the highest and lowest values in this data, it 
+  # made it look like there were two different colors on the map instead of a 
+  # gradient. 
+  
   labs(title = "Self-reported World Cup Salaries", 
+       fill = "Average Salary", 
        caption = "Data from 'We Asked, They Answered: 108 Women's World Cup
        Players on Their Jobs, Money, and Sacrificing Everything'
        (New York Times Article by Allison McCann).") +
+  
+  # add title, retitle the legend, add a caption 
+  
   theme(plot.caption = element_text(hjust = 0.5))
+
+  # center the caption 
 
 png("graphics/map.png", res = 120, height = 350, width = 576)
 map
 dev.off()
 
+# save the map as an image. The image isn't square so it was important
+# to specify dimensions so the image wasn't displayed in the app with a
+# ton of whitespace at the top. 
 
+file_copy("graphics/map.png", new_path = "State-of-womens-soccer/www/map.png", overwrite = TRUE)
+
+# copy it to my app 
 ```
 
