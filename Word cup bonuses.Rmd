@@ -101,9 +101,12 @@ world_cup_bonuses <- ggplot(bonuses2, aes(x = number, y = cumulative)) +
   
   labs(x = "Stage",
        y = "Cumulative", 
-       title = "Cumulative Bonuses per World Cup Stage") +
+       title = "Cumulative Bonuses per World Cup Stage", 
+       subtitle = "Data from The Guardian") +
   
-  # add labels to x and y axis, title 
+  # add labels to x and y axis, title. I put the source info in the subtitle
+  # because the caption kept getting cropped off when I loaded the image in 
+  # shiny
   
   theme_minimal() +
   
@@ -179,6 +182,8 @@ world_cup_bonuses_tab <- bonuses %>%
   # make a chart
   
   tab_header("World Cup Bonuses per Stage") %>%
+  
+  tab_source_note("Data from The Guardian.") %>%
 
   cols_label(stage = "Stage", women = "USWNT", men = "USMNT") %>%
 
