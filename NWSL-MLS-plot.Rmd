@@ -133,5 +133,9 @@ plot5
 dev.off()
 
 # center titles and caption
+
+file_copy("graphics/plot5.png", new_path = "State-of-womens-soccer/www/plot5.png", overwrite = TRUE)
+
+# copy into app.
 ```
 
