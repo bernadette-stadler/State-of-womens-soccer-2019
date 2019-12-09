@@ -179,8 +179,6 @@ library(tidyverse)
              walk away with if their team exited the tournament at each respective stage.")),
           column(9, 
             HTML('<center><img src = "world_cup_bonuses.png"></center>'))
-                  
-          
 
           # insert a graph showing the cumulative amount that each team
           # makes per stage in the world cup. I made the graph in a separate
@@ -581,6 +579,11 @@ server <- function(input, output) {
       facet_wrap(~Team) +
 
       # facet wrap by team
+      
+      scale_y_continuous(labels = number_format(scale = 1)) +
+      
+      # change axis so that it doesn't discplay scientific notation. I got advice 
+      # during demo day that this would make my graphs more intuitive 
 
       labs(
         x = "Fiscal Year",
@@ -754,6 +757,10 @@ server <- function(input, output) {
       scale_fill_manual(values = c("Men" = "purple4", "Women" = "red")) +
 
       # set colors manually
+      
+      scale_y_continuous(labels = number_format(scale = 1)) +
+      
+      # change axis labels so they show in regular number format (not log)
 
       labs(
         x = "Country",

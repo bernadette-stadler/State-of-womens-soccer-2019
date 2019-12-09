@@ -99,6 +99,10 @@ world_cup_bonuses <- ggplot(bonuses2, aes(x = number, y = cumulative)) +
   
   # manually add breaks at every number (previously it didn't display all of them),   # label each number with its associated stage 
   
+  scale_y_continuous(labels = number_format(scale = 1)) +
+  
+  # change y axis labels so they disply as regular numbers, not log values
+  
   labs(x = "Stage",
        y = "Cumulative", 
        title = "Cumulative Bonuses per World Cup Stage", 
