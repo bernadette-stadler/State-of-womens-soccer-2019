@@ -101,7 +101,7 @@ world_cup_bonuses <- ggplot(bonuses2, aes(x = number, y = cumulative)) +
   
   scale_y_continuous(labels = number_format(scale = 1)) +
   
-  # change y axis labels so they disply as regular numbers, not log values
+  # change y axis labels so they disply as regular numbers, not scientific notation
   
   labs(x = "Stage",
        y = "Cumulative", 

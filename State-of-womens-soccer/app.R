@@ -760,7 +760,7 @@ server <- function(input, output) {
       
       scale_y_continuous(labels = number_format(scale = 1)) +
       
-      # change axis labels so they show in regular number format (not log)
+      # change axis labels so they show in regular number format (not scientific notation)
 
       labs(
         x = "Country",
