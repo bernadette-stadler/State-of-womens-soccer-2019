@@ -1,0 +1,231 @@
+---
+title: "State of Women's Soccer 2019"
+author: "Bernadette Stadler"
+date: "12/10/2019"
+output: pdf_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(readr)
+library(ggplot2)
+library(plotly)
+library(readxl)
+library(janitor)
+library(reshape2)
+library(scales)
+library(gt)
+library(cowplot)
+library(tidyverse)
+```
+
+```{r read in data, include=FALSE}
+  rev_exp <- read_excel("raw-data/Revenue and expense data.xlsx") %>%
+    clean_names()
+
+  # read in U.S. soccer revenue and expenses dataset
+
+  wws <- read_csv("raw-data/tabula-GSSS 2017.csv", col_types = cols(
+    league = col_character(),
+    country = col_character(),
+    Season = col_character(),
+    Sport = col_character(),
+    Teams = col_double(),
+    Players = col_double()
+  )) %>% clean_names()
+
+  # read in womens salaries data
+
+  mws <- suppressWarnings(read_csv("raw-data/tabula-GSSS 2017_2.csv", col_types = cols(
+    RANK = col_character(),
+    TEAM = col_character(),
+    LEAGUE = col_character()
+  ))) %>%
+    drop_na() %>%
+    filter(!LEAGUE == "LEAGUE") %>%
+    clean_names()
+
+  # read in mens salaries data for 2017.Use suppress warnings because I got a warning
+  # saying that a missing column name was filled in with X4 that I couldn't get to
+  # to go away. Filter to get rid of multiple table headers from subsequent pages of
+  # the document I scraped it from.
+
+  mws_18 <- suppressWarnings(read_csv("raw-data/tabula-GSSS 2018.csv", col_types = cols(
+    COUNTRY = col_character(),
+    CONTINENT = col_character(),
+    X4 = col_character()
+  ))) %>% clean_names()
+
+  # read in mens salaries data for 2018.Use suppress warnings for same reason as above
+
+  bonuses <- read_excel("raw-data/World cup bonuses.xlsx") %>% clean_names()
+
+  # read in bonuses data (manually compiled from Guardian article)
+
+  model_data <- read_csv("raw-data/womens-football-2019-clean.csv",
+    col_types = cols(
+      X1 = col_character(),
+      Population = col_number(),
+      `Global Gender Gap Ranking 2018` = col_character(),
+      `FIFA WF Ranking 2019` = col_character(),
+      `Female players playing organized football` = col_character(),
+      `licesned coaches` = col_character(),
+      `licensed referees` = col_character(),
+      `Women's soccer strategy?` = col_character(),
+      `Mixed-gender football?` = col_character()
+    )
+  ) %>% clean_names()
+  
+  # read in fifa data 
+
+  gdp_data <- read_csv("raw-data/GDP_data.csv",
+    skip = 4,
+    col_types = cols(
+      .default = col_double(),
+      `Country Name` = col_character(),
+      `Country Code` = col_character(),
+      `Indicator Name` = col_character(),
+      `Indicator Code` = col_character(),
+      `2019` = col_logical(),
+      X65 = col_logical()
+    )
+  ) %>% clean_names()
+  
+  # read in world bank data 
+
+  gender_index <- read_csv("raw-data/data.csv",
+    col_types = cols(
+      `Country ISO3` = col_character(),
+      `Country Name` = col_character(),
+      `Indicator Id` = col_double(),
+      Indicator = col_character(),
+      `Subindicator Type` = col_character(),
+      `2006` = col_double(),
+      `2007` = col_double(),
+      `2008` = col_double(),
+      `2009` = col_double(),
+      `2010` = col_double(),
+      `2011` = col_double(),
+      `2012` = col_double(),
+      `2013` = col_double(),
+      `2014` = col_double(),
+      `2015` = col_double(),
+      `2016` = col_double(),
+      `2018` = col_double()
+    )
+  ) %>% clean_names()
+  
+  # read in gender index data 
+  
+  reg_season_salary <- read_excel("raw-data/reg season salaries.xlsx") %>% clean_names()
+```
+
+In March 2019, the 28 members of the United States Women's National Soccer Team (USWNT) filed a class-action lawsuit against their employer, U.S. Soccer. The lawsuit accuses U.S. soccer of violating the Equal Pay Act and Title VII of the Civil Rights Act of 1964 by consistently paying USWNT athletes less than their male counterparts (players on the U.S. Men's National Team or USMNT). The lawsuit, and the subsequent dominance of the USWNT in the 2019 Women's World Cup, have drawn significant attention to the issue of equal pay in professional soccer. However, the USWNT and USMNT have different pay structures that makes it difficult to compare their earnings. This project seeks to explain the USWNT and USMNT compensation structures and earning potentials in a way that allows for useful comparisons. It will also go beyond the USWNT to examine how professional female soccer players are compensated throughout the world.
+
+# Regular Season Pay
+
+The USWNT and USMNT have different payment structures, which makes it different to compare their salaries. USWNT players make a base salary of $100,000 and earn bonuses of on average $4,950 for games they win. The actual amount they earn may depend on the FIFA rating of their opponent. The USMNT does not have a base salary, but players make a bonus of $5,000 for losing a game and up to $17,625 for a win, depending on the opponent's ranking. On average, USMNT players would make around $13,166 per game that they win. The USMNT and USWNT also play differing number of games per year, further complicating efforts to directly compare their salaries. The graph below shows how much the USMNT and USWNT would make if each team played 20 games, depending on the number of games won.
+
+```{r prep graph data, include = FALSE }
+
+graph_data <- reg_season_salary %>% 
+      pivot_longer(cols = women:men, names_to = "team", values_to = "salary") %>% 
+      
+      # pivot data so that women or men appear as values in column "team" so that I 
+      # can facet wrap by team later 
+      
+      mutate(team = if_else(team == "women", "Women", "Men")) %>%
+      
+      # change "men" and "women" to "Men" and "Women" so that they will display 
+      # nicely in the legend 
+  
+      filter(games_won %in% c(0,10,20)) %>%
+    
+      # filter so that I can show three different outcomes in my static graphic. In my app
+      # this is interactive
+      
+      mutate(games_won = case_when(games_won == 0 ~ "No Games Won", 
+                                   games_won == 10 ~ "Ten Games Won", 
+                                   TRUE ~ "All Games Won"))
+  
+      # Changes numbers to something that will make sense as a label in my graph 
+
+graph_data$games_won <- factor(
+  graph_data$games_won, levels = c("No Games Won", "Ten Games Won", "All Games Won")
+  )
+
+      # I manually reorded the chart.
+```
+
+```{r make the chart, echo = FALSE}
+
+graph_data %>%
+      ggplot() +
+      geom_col(aes(x = team, y = salary, fill = team), position = "dodge") +
+  
+      # make a ggplot! Set position to dodge so the columns appear next to
+      # eachother 
+      
+      facet_wrap(~games_won) +
+      
+      # facet wrap by games won to make three separate graphs 
+      
+      scale_fill_manual(values = c("Women" = "red", "Men" = "purple4")) +
+      
+      # manually color the bars, using same color scheme as rest of men/women 
+      # graphs 
+  
+      scale_y_continuous(labels = number_format(scale = 0.001)) +
+  
+      # put numbers in regular notation (not scientific)
+      
+      coord_flip() +
+      
+      # flip coordinates because a two-column graph looks better going 
+      # horizontally
+      
+      theme_minimal() +
+      
+      # theme of my app! 
+      
+      theme(axis.text.y = element_blank()) + 
+      
+      # remove y axis text because fill color already identifies each bar
+      
+      labs(title = "Money earned per games won", 
+           subtitle = "Assuming each team plays 20 games", 
+           y = "Money Earned (in thousands of dollars)", 
+           x = "", 
+           caption = "Data from USWNT lawsuit", 
+           fill = "Team") +
+  
+      # add labels 
+  
+      theme(plot.title = element_text(hjust= 0.5)) +
+      theme(plot.subtitle = element_text(hjust = 0.5))
+
+      # center title and subtitle 
+
+
+```
+
+
+# World Cup Pay 
+
+USMNT and USWNT players also make different amounts in bonuses for each stage of the world cup they reach, from being named to the world cup team to winning the world cup. The table below shows how much a USWNT and USMNT player makes on average at each of these stages.
+
+Cumulative Difference
+The different bonuses made at each stage add up to quite a difference. This chart shows the cumulative amount that a USWNT or USMNT player would walk away with if their team exited the tournament at each respective stage.
+In response to the USWNT lawsuit, U.S. Soccer has claimed that it is justified in paying female athletes less because of the market reality that women's soccer generates less revenue. This graph shows USWNT and USMNT revenue, expenses, and net income for fiscal year 2014 through the projected values for 2019. While the USWNT had generated less income for U.S. soccer in some years, the reverse is true in others.
+Comparing Salaries in the NWSL and MLS
+The American professional soccer leagues are Major League Soccer (MLS) and the National Women's Soccer League (NWSL). Many USMNT hopefuls play in the MLS, while it USWNT players are practically required to play in the NWSL. This graph shows the range of possible salaries in the NWSL and MLS for 2013-2018. The discrepancy in national league salaries contributes to the discrepancy in the amount of money that USWNT and USMNT athletes can expect to make, as USMNT make higher national league salaries in addition to their higher earnings for games played on the USMNT.
+The question of equal (or unequal) investment in women's and men's soccer goes beyond the USWNT lawsuit. This section explores investment in men's and women's soccer at the professional level throughout the world.
+How much are female World Cup athletes paid around the world?
+This data was taken from a New York Times article by Allison McCann, who conducted a survey of 108 female world cup athletes. Numerous countries are not represented; however, the map below gives a sense of the differences in salaries between female World Cup players. This map shows average values, but the minimum reported by players in McCann's survey was $0 (Jamaica) and the maximum was $350,000 (USA).
+Is gender equality correlated with performance?
+If paying male and female soccer players equally increases the performance of women's teams, that fact should incentivize national soccer governing bodies to do so. However, the real picture is more complicated, with gender equality (which I am using as a proxy for equal pay) only loosely correlated with better performance. GDP is much more strongly correlated with performance, suggesting it is not equality of investment between male and female teams that increases performance, but level of investment (as richer countries are able to invest more in their soccer teams).
+
+
+```{r}
+
+```
+

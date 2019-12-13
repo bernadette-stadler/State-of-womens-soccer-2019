@@ -207,9 +207,9 @@ library(tidyverse)
 
           mainPanel(
             h5("In response to the USWNT lawsuit, U.S. Soccer has claimed that it
-               is justified in paying female atheletes less because of the market
+               is justified in paying female athletes less because of the market
                reality that women's soccer generates less revenue. This graph shows 
-               USWNT and USMNT revenue, expesnes, and net income for fiscal year 2014
+               USWNT and USMNT revenue, expenses, and net income for fiscal year 2014
                through the projected values for 2019. While the USWNT had generated
                less income for U.S. soccer in some years, the reverse is true in 
                others."),
@@ -310,7 +310,7 @@ library(tidyverse)
                  column(4,
                  h5("This data was taken from a New York Times article by Allison 
                     McCann, who conducted a survey of 108 female world cup athletes. 
-                    Numerous countries are not represented; however the map below gives 
+                    Numerous countries are not represented; however, the map below gives 
                     a sense of the differences in salaries between female World Cup
                     players. This map shows average values, but the minimum reported by
                     players in McCann's survey was $0 (Jamaica) and the maximum was 
@@ -330,7 +330,7 @@ library(tidyverse)
           h3("Is gender equality correlated with performance?"), 
           h5("If paying male and female soccer players equally increases the performance 
              of women's teams, that fact should incentivize national soccer governing bodies
-             to do so. However the real picture is more complicated, with gender equality 
+             to do so. However, the real picture is more complicated, with gender equality 
              (which I am using as a proxy for equal pay) only losely correlated with better 
              performance. GDP is much more strongly correlated with performance, suggesting
              it is not equality of investment between male and female teams that increases 
@@ -376,9 +376,9 @@ library(tidyverse)
       
       h3("About this project"),
       h5("In March 2019, the 28 members of the United States Women's National 
-               Soccer Team (USWNT) filed a class-actionlawsuit against their employer,
+               Soccer Team (USWNT) filed a class-action lawsuit against their employer,
                U.S. Soccer. The lawsuit accuses U.S. soccer of violating the Equal 
-               Pay Act and Title VII of thet Civil RIghts Act of 1964 by consistently 
+               Pay Act and Title VII of thet Civil Rights Act of 1964 by consistently 
                paying USWNT athletes less than their male counterparts (players on 
                the U.S. Men's National Team or USMNT). The lawsuit, and the subsequent
                dominance of the USWNT in the 2019 Women's World Cup, have drawn 
