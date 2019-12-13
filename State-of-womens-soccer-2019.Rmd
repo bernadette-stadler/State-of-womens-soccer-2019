@@ -14,6 +14,8 @@ library(janitor)
 library(reshape2)
 library(scales)
 library(gt)
+library(sf)
+library(fs)
 library(cowplot)
 library(tidyverse)
 ```
@@ -127,7 +129,7 @@ The USWNT and USMNT have different payment structures, which makes it different 
 
 ```{r prep graph data, include = FALSE }
 
-graph_data <- reg_season_salary %>% 
+graph_data1 <- reg_season_salary %>% 
       pivot_longer(cols = women:men, names_to = "team", values_to = "salary") %>% 
       
       # pivot data so that women or men appear as values in column "team" so that I 
@@ -149,16 +151,16 @@ graph_data <- reg_season_salary %>%
   
       # Changes numbers to something that will make sense as a label in my graph 
 
-graph_data$games_won <- factor(
-  graph_data$games_won, levels = c("No Games Won", "Ten Games Won", "All Games Won")
+graph_data1$games_won <- factor(
+  graph_data1$games_won, levels = c("No Games Won", "Ten Games Won", "All Games Won")
   )
 
       # I manually reorded the chart.
 ```
 
-```{r make the chart, echo = FALSE}
+```{r reg season graph, echo = FALSE}
 
-graph_data %>%
+graph_data1 %>%
       ggplot() +
       geom_col(aes(x = team, y = salary, fill = team), position = "dodge") +
   
@@ -211,17 +213,381 @@ graph_data %>%
 
 # World Cup Pay 
 
-USMNT and USWNT players also make different amounts in bonuses for each stage of the world cup they reach, from being named to the world cup team to winning the world cup. The table below shows how much a USWNT and USMNT player makes on average at each of these stages.
+USMNT and USWNT players also make different amounts in bonuses for each stage of the world cup they reach, from being named to the world cup team to winning the world cup. The different bonuses made at each stage add up to quite a difference. This chart shows the cumulative amount that a USWNT or USMNT player would walk away with if their team exited the tournament at each respective stage.
 
-Cumulative Difference
-The different bonuses made at each stage add up to quite a difference. This chart shows the cumulative amount that a USWNT or USMNT player would walk away with if their team exited the tournament at each respective stage.
+```{r read in and clean data, include = FALSE}
+
+bonuses <- read_excel("raw-data/World cup bonuses.xlsx") %>% clean_names()
+
+# read in data, clean names
+
+bonuses2 <- bonuses %>%
+  select(stage, women, men, cumulative_women, cumulative_men) %>%
+
+  # select columns of interest
+
+  pivot_longer(
+    cols = c("women", "men"), names_to = "team", values_to = c("Value")
+  ) %>%
+
+  # pivot longer so that men and women are in the column team so that I will
+  # be able to facet wrap by team later to make two side-by-side graphc
+
+  pivot_longer(cols = c("cumulative_women", "cumulative_men"), names_to = "team2", values_to = "cumulative") %>%
+
+  # pivot longer again to get all of the cumulative data in one column.
+  # unfortunatey this second pivot gave me some wierd rows that had both women
+  # and men_cumulative or vice versa. So, see next step ...
+
+  mutate(keep = case_when(
+    team == "men" & team2 == "cumulative_women" ~ FALSE,
+    team == "women" & team2 == "cumulative_men" ~ FALSE,
+    TRUE ~ TRUE
+  )) %>%
+
+  # make a new column that identifies which rows mix teams with FALSE.
+
+  filter(keep == "TRUE") %>%
+
+  # filter for the rows that did not mixt teams, which I labeled as TRUE
+  # in the last step
+
+  select(stage, team, Value, cumulative) %>%
+
+  # select variables of interest
+
+  mutate(team = if_else(team == "women", "USWNT", "USMNT")) %>%
+
+  # change "men" and "women" to "USWNT" and "USMNT" to make the graph look more
+  # professional
+
+  mutate(number = case_when(
+    stage == "Start" ~ 1,
+    stage == "Qualifying" ~ 2,
+    stage == "Winning qualification games" ~ 3,
+    stage == "Named to world cup team" ~ 4,
+    stage == "Advance to knockout" ~ 5,
+    stage == "Winning world cup" ~ 6,
+    TRUE ~ 7
+  ))
+
+# give each stage a number. This allows me to make a line chart below (I was
+# having some issues when I was using the discrete charcter values). 
+
+```
+
+```{r bonsuses graph, echo=FALSE}
+
+ggplot(bonuses2, aes(x = number, y = cumulative)) +
+  
+  # make the ggplot and save it as world_cup_bonuses
+  
+  geom_point() +
+  
+  # add the geom_point layer
+  
+  geom_line() +
+  
+  # agg the geom_line layer 
+  
+  facet_wrap(~team) +
+  
+  # facet_wrap by team 
+  
+  scale_x_continuous(breaks = c(1,2,3,4,5,6,7), labels = c("Start", "Qualifying", "Winning qualification games", "Named to world cup team", "Advance to knockout", "Winning world cup", "Victory tour")) +
+  
+  # manually add breaks at every number (previously it didn't display all of them),   # label each number with its associated stage 
+  
+  scale_y_continuous(labels = number_format(scale = 1)) +
+  
+  # change y axis labels so they disply as regular numbers, not scientific notation
+  
+  labs(x = "Stage",
+       y = "Cumulative", 
+       title = "Cumulative Bonuses per World Cup Stage", 
+       caption = "Data from The Guardian") +
+  
+  # add labels to x and y axis, title, caption
+  
+  theme_minimal() +
+  
+  # theme minimal because that is the style of my app
+  
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+
+  # tilt tick labels for readability 
+
+```
+
+# Market realities? 
+
 In response to the USWNT lawsuit, U.S. Soccer has claimed that it is justified in paying female athletes less because of the market reality that women's soccer generates less revenue. This graph shows USWNT and USMNT revenue, expenses, and net income for fiscal year 2014 through the projected values for 2019. While the USWNT had generated less income for U.S. soccer in some years, the reverse is true in others.
-Comparing Salaries in the NWSL and MLS
-The American professional soccer leagues are Major League Soccer (MLS) and the National Women's Soccer League (NWSL). Many USMNT hopefuls play in the MLS, while it USWNT players are practically required to play in the NWSL. This graph shows the range of possible salaries in the NWSL and MLS for 2013-2018. The discrepancy in national league salaries contributes to the discrepancy in the amount of money that USWNT and USMNT athletes can expect to make, as USMNT make higher national league salaries in addition to their higher earnings for games played on the USMNT.
+
+```{r}
+rev <- rev_exp %>%
+
+      # first, I'm just going to work with revenue data
+
+      select(fiscal_year, womens_revenue, mens_revenue) %>%
+
+      # select variables of interest
+
+      pivot_longer(
+        cols = ends_with("revenue"),
+        names_to = "Team",
+        values_to = "Revenue"
+      ) %>%
+
+      # pivot the data so that the USMNT/USWNT data ends up in one column
+      # this will allow me to facet wrap my graph by men and women later
+
+      mutate(fiscal_year = if_else(
+        fiscal_year == "2019 (projected)", 2019, suppressWarnings(as.double((fiscal_year)))
+      )) %>%
+
+      # mutate to remove (projected) so that I can make fiscal_year a
+      # double column. Use suppressWarnings to get rid of the NA introduced by coercion
+      # warning (I couldn't figure out how to do it any other way)
+
+      mutate(Team = if_else(Team == "womens_revenue", "USWNT", "USMNT"))
+
+    # mutate to change womens_revenue and mens_revenue to USWNT and USMNT,
+    # which is how I want it to show up in the graph
+
+    exp <- rev_exp %>%
+
+      # now work with expense data
+
+      select(fiscal_year, womens_expenses, mens_expenses) %>%
+
+      # select variables of interest
+
+      pivot_longer(
+        cols = ends_with("expenses"),
+        names_to = "Team",
+        values_to = "Expenses"
+      ) %>%
+
+      # pivot the data so that the USMNT/USWNT data ends up in one column
+      # this will allow me to facet wrap my graph by men and women later
+
+      mutate(fiscal_year = if_else(
+        fiscal_year == "2019 (projected)", 2019, suppressWarnings(as.double(fiscal_year))
+      )) %>%
+
+      # make 2019 (projected) into a numeric value, as well as whole column. Use
+      # suppress warning for same purposes as above.
+
+      mutate(Team = if_else(Team == "womens_expenses", "USWNT", "USMNT"))
+
+    # mutate mens_expenses and womens_expenses to USWNT and USMNT
+
+    rev_exp_formatted <- exp %>%
+      left_join(rev, by = c("fiscal_year", "Team")) %>%
+
+      # rejoin the data
+
+      mutate(Expenses = if_else(is.na(Expenses), 0, Expenses)) %>%
+
+      # change NAs to 0 revenue so that I can collapse the rows. The NAs were
+      # introduced because I have separate rows for revenue and expense
+
+      mutate(Revenue = if_else(is.na(Revenue), 0, Revenue)) %>%
+
+      # change NAs to 0 in revenue so that I can add and subtract data below
+
+      mutate(Net = Revenue - Expenses) %>%
+
+      # make a net column by subtracting expenses from revenue
+
+      pivot_longer(
+        cols = Expenses:Net,
+        names_to = "Type",
+        values_to = "Amount"
+      )
+
+    # pivot longer so that I will be able to filter by Revenue, Expenses and Net.
+    # I'm not sure if this is by design, but this is one of the few ways I was able
+    # to get reactive variables to work in shiny
+
+    rev_exp_formatted$Type <- factor(rev_exp_formatted$Type, levels = c("Revenue", "Expenses", "Net"))
+
+    # assign levels to Revenue, Expenses and Net so that they display with Net last
+    # instead of in alphabetical order
+
+    rev_exp_formatted %>%
+      # make a ggplot
+
+      ggplot(aes(x = fiscal_year, y = Amount, fill = Type)) +
+
+      # fiscal_year goes on x axis, amount on y axis, color by type
+
+      geom_col(position = "dodge") +
+
+      # set columns to dodge so that they display side by side instead of stacked
+
+      scale_fill_manual(values = c(
+        "Expenses" = "brown1", "Revenue" = "forestgreen", "Net" = "black"
+      )) +
+
+      # set the colors manually
+
+      facet_wrap(~Team) +
+
+      # facet wrap by team
+      
+      scale_y_continuous(labels = number_format(scale = 1)) +
+      
+      # change axis so that it doesn't discplay scientific notation. I got advice 
+      # during demo day that this would make my graphs more intuitive 
+
+      labs(
+        x = "Fiscal Year",
+        y = "Amount in U.S. dollars",
+        title = "Annual Team Expenses and Revenue",
+        caption = "Data from U.S. soccer annual reports"
+      ) +
+
+      # relabel x and y, add title and caption
+
+      theme_minimal() +
+
+      # set theme to minimal
+
+      theme(
+        plot.title = element_text(hjust = 0.5)
+      )
+
+    # center title
+```
+
+# Equality in Professional Soccer Beyond the United States 
+
 The question of equal (or unequal) investment in women's and men's soccer goes beyond the USWNT lawsuit. This section explores investment in men's and women's soccer at the professional level throughout the world.
-How much are female World Cup athletes paid around the world?
+
+# How much are female World Cup athletes paid around the world?
 This data was taken from a New York Times article by Allison McCann, who conducted a survey of 108 female world cup athletes. Numerous countries are not represented; however, the map below gives a sense of the differences in salaries between female World Cup players. This map shows average values, but the minimum reported by players in McCann's survey was $0 (Jamaica) and the maximum was $350,000 (USA).
-Is gender equality correlated with performance?
+
+```{r read in map data}
+
+salary_data <- read_excel("raw-data/Salaries worldwide.xlsx", col_names = c("salary", "country")) %>% clean_names()
+
+# read in salary data, naming the columns appropriately 
+
+untar("raw-data/ne_50m_admin_0_countries.zip")
+
+# untar zip file containing world map shape file 
+
+map3 <- st_read("ne_50m_admin_0_countries.shp") %>%
+  mutate(NAME_EN = as.character(NAME_EN))
+
+# save shape file as a r object. Change the column NAME_EN to character. 
+# This is because I will be joining this data with the salary data later, 
+# and the column I will be joinig it with is class character. Making this 
+# change clears up some warnings, and this seemed like the best place 
+# to do it. 
+
+file_delete("ne_50m_admin_0_countries.README.html")
+
+file_delete("ne_50m_admin_0_countries.VERSION.txt")
+
+file_delete("ne_50m_admin_0_countries.cpg")
+
+file_delete("ne_50m_admin_0_countries.dbf")
+
+file_delete("ne_50m_admin_0_countries.prj")
+
+file_delete("ne_50m_admin_0_countries.shx")
+
+file_delete("ne_50m_admin_0_countries.shp")
+
+# delete unnecessary files 
+
+```
+
+```{r manipulate map data, echo = FALSE}
+
+salary_data %>% 
+  mutate(salary = parse_number(salary)) %>%
+  
+  # convert salary to a number so I can manipulate it below. 
+  # I will ultimatley be creating a column for average salary
+  # for each country. 
+  
+  group_by(country) %>% 
+  mutate(sum_salary_country = sum(salary)) %>% 
+  ungroup() %>% 
+  
+  # create a column that sums the salaries for each country. 
+  # To do this, I first grouped by country before using mutate.
+  # Then I ungrouped the data because I have to group it 
+  # differently for the next step
+  
+  group_by(country, sum_salary_country) %>% 
+  count(country) %>% 
+  mutate(avg_salary = sum_salary_country/n) %>%
+  ungroup() %>% 
+  
+  # Group by country and sum_salary_country. Grouping by 
+  # sum_salary_country is important because that keeps the
+  # column in the data. Use count to find the number of times
+  # each country appears in the data. Then make a new column, 
+  # avg_salary that holds the average salary per country (found 
+  # by dividing sum_salary_country by the number of times (n)
+  # each country appeared in the data 
+
+  select(-n, -sum_salary_country) %>% 
+  
+  # drop unnecessary columns 
+  
+  mutate(country = if_else(country == "United States", "United States of America", country))
+
+  # update country column so that the label for the United States matches the shape 
+  # file data 
+
+map4 <- map3 %>% left_join(data_map, by = c("NAME_EN" = "country")) 
+
+  # join salary data with shape file data by country. This will make it super easy 
+  # to shade countries according to average salray in the next step. 
+
+```
+
+```{r make map} 
+map <- ggplot() +
+  geom_sf(data = map4, aes(fill = avg_salary)) + 
+  
+  # make a ggplot, using geom_sf to draw the world map and setting fill to 
+  # average salary 
+  
+  scale_fill_gradient(na.value = "white", low = "tomato", high = "red") +
+  
+  # change the NA countries to white -- this just looks better. Set low to 
+  # tomato and high to red because I've been using red throughout this project 
+  # to represent women's teams. Tomato and Red make for a nice gradient. I did 
+  # try using darker and lighter colors to increase contrast, but given the 
+  # extreme difference between the highest and lowest values in this data, it 
+  # made it look like there were two different colors on the map instead of a 
+  # gradient. 
+  
+  labs(title = "Self-reported World Cup Salaries", 
+       fill = "Average Salary", 
+       caption = "Data from 'We Asked, They Answered: 108 Women's World Cup
+       Players on Their Jobs, Money, and Sacrificing Everything'
+       (New York Times Article by Allison McCann).") +
+  
+  # add title, retitle the legend, add a caption 
+  
+  theme_minimal() +
+  
+  # add minimal theme so it matches rest of app 
+  
+  theme(plot.caption = element_text(hjust = 0.5))
+
+  # center the caption 
+```
+
+# Is gender equality correlated with performance?
+
 If paying male and female soccer players equally increases the performance of women's teams, that fact should incentivize national soccer governing bodies to do so. However, the real picture is more complicated, with gender equality (which I am using as a proxy for equal pay) only loosely correlated with better performance. GDP is much more strongly correlated with performance, suggesting it is not equality of investment between male and female teams that increases performance, but level of investment (as richer countries are able to invest more in their soccer teams).
 
 
