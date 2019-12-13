@@ -375,6 +375,11 @@ library(tidyverse)
       # title it 
       
       h3("About this project"),
+      HTML('<iframe width="560" height="315" src="https://www.youtube.com/embed/P12q_xfK7o0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'), 
+      
+      # embed the video! I just used the same code the guy did in the link from the syllabus.
+      # Thanks for the helpul hint, Preceptor! 
+      
       h5("In March 2019, the 28 members of the United States Women's National 
                Soccer Team (USWNT) filed a class-action lawsuit against their employer,
                U.S. Soccer. The lawsuit accuses U.S. soccer of violating the Equal 
@@ -389,6 +394,9 @@ library(tidyverse)
                way that allows for useful comparisons. It will also go beyond the 
                USWNT to examine how professional female soccer players are compensated 
                throughout the world."),
+      
+      # add about text 
+      
       h3("Data"),
       h5("The data for this project is drawn from the Major League Soccer Player's
           Association (MLSPA), US Soccer's annual reports, FIFA's 2019 report on 
@@ -397,7 +405,13 @@ library(tidyverse)
           League does not collect information on player salaries and was thus unable to 
           provide any when I contacted them. All of the raw data I used is 
           available the project's",
+         
+         # add data text 
+         
           a("github repository.", href= "https://github.com/bernadette-stadler/State-of-womens-soccer-2019")),
+      
+        # add a link! I looked at Shivani's code for her final project to figure out how to do this 
+      
       h3("About Me"),
       h5("My name is Bernadette Stadler and I am a first year Master's Candidate in Russian, Eastern European, and
          Central Asian Studies at Harvard University. I'm also a long-time amature
@@ -406,14 +420,21 @@ library(tidyverse)
          br(),
          "You can follow me on twitter at",
          a("@bstadler94.", href="https://www.twitter.com/bstadler94?lang=en"),
+         
+         # add link to my twitter
+         
          br(),
          "You can find me on linkedin",
          a("here.",href ="https://www.linkedin.com/in/bernadette-stadler-25b65a63/"),
+         
+         # add link to my linkedin 
+         
          br(),
          "Please feel free to contact me about this project at", 
          a("bstadler@g.harvard.edu", href="bstadler@g.harvard.edu"))
       
-      # add about text 
+        # add link to my email 
+      
     )
   )
 )
