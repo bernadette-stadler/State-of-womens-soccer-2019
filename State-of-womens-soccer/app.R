@@ -395,11 +395,23 @@ library(tidyverse)
           Women in Football and jouralistic articles from the Guardian, the Equalizer,
           the New York Times, and the Washington Post.The National Womens'Soccer 
           League does not collect information on player salaries and was thus unable to 
-          provide any when I contacted them."),
+          provide any when I contacted them. All of the raw data I used is 
+          available the project's",
+          a("github repository.", href= "https://github.com/bernadette-stadler/State-of-womens-soccer-2019")),
       h3("About Me"),
-      h5("I am a first year Master's Candidate in Russian, Eastern European, and
+      h5("My name is Bernadette Stadler and I am a first year Master's Candidate in Russian, Eastern European, and
          Central Asian Studies at Harvard University. I'm also a long-time amature
-         soccer player and avid fan of women's soccer.")
+         soccer player and avid fan of women's soccer.", 
+         br(),
+         br(),
+         "You can follow me on twitter at",
+         a("@bstadler94.", href="https://www.twitter.com/bstadler94?lang=en"),
+         br(),
+         "You can find me on linkedin",
+         a("here.",href ="https://www.linkedin.com/in/bernadette-stadler-25b65a63/"),
+         br(),
+         "Please feel free to contact me about this project at", 
+         a("bstadler@g.harvard.edu", href="bstadler@g.harvard.edu"))
       
       # add about text 
     )
@@ -438,6 +450,10 @@ server <- function(input, output) {
       # manually color the bars, using same color scheme as rest of men/women 
       # graphs 
       
+      scale_y_continuous(labels = number_format(scale = 0.001)) +
+      
+      # make labels in regular numbers, not scientific notation
+      
       coord_flip() +
       
       # flip coordinates because a two-column graph looks better going 
@@ -453,7 +469,7 @@ server <- function(input, output) {
       
       labs(title = "Money earned per games won", 
            subtitle = "Assuming each team plays 20 games", 
-           y = "Money Earned", 
+           y = "Money Earned (in thousands of dollars)", 
            x = "", 
            caption = "Data from USWNT lawsuit", 
            fill = "Team")
